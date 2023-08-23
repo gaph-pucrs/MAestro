@@ -1,4 +1,0 @@
-ctg:
-  send:
-    successors:
-      - "receive"

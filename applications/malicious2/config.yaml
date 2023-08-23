@@ -1,4 +1,0 @@
-ctg:
-  producer:
-    successors:
-      - "consumer"
