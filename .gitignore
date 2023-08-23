@@ -1,2 +1,8 @@
 *.pyc
 .vscode
+*.bin
+*.elf
+*.lst
+*.map
+*.txt
+*.o
