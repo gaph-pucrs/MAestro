@@ -76,7 +76,7 @@ _start:
 
 	csrw	mscratch, sp	# Save sp to mscratch
 
-	j		idle_entry
+	wfi
 
 .section .text
 .align 4
@@ -199,8 +199,9 @@ isr_entry:
 	csrw	mscratch, sp	# Save sp to mscratch -- it will not be used anymore
 
 	# If the idle task was scheduled, no need to restore the context
-	beqz	a0, idle_entry
-
+	bnez	a0, should_restore_isr
+	wfi
+should_restore_isr:
 	# Else if the same task that was interrupted is scheduled, restore only needed
 	beq		a0, s0, restore_minimum
 
@@ -290,8 +291,9 @@ restore_complete:
 	csrw	 mscratch, sp	# Save kernel sp
 
 	# If the idle task was scheduled, no need to restore the context
-	beqz	 a0, idle_entry
-
+	bnez	 a0, should_restore_complete
+	wfi
+should_restore_complete:
 	# Otherwise, restore context of scheduled task
 	# We don't know if the scheduled task stopped on a call or intr, so restore everything
 	lw		 t0, PC_ADDR(a0)
@@ -364,19 +366,3 @@ ecall_return:
 	csrrw	 sp, mscratch, sp	# Swap back kernel sp with task sp, faster than loading from memory
 
 	mret
-
-idle_entry:
-	# Set the return pointer to the idle 'task'
-	la		t0, idle
-	csrw	mepc, t0
-
-	# Ensure mrar has the kernel offset
-	csrw	mrar, zero
-
-	li		a0, MMR_CLOCK_HOLD
-
-	mret
-
-idle:
-	sw		zero, 0(a0)
-	j		idle
