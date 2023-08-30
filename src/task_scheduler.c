@@ -51,7 +51,7 @@ void sched_init()
 {
 	list_init(&_scheds);
 
-	last_idle_time = MMR_TICK_COUNTER;
+	last_idle_time = MMR_RTC_MTIME;
 }
 
 sched_t *sched_emplace_back(tcb_t *tcb)
@@ -113,7 +113,7 @@ tcb_t *sched_get_current_tcb()
 
 void sched_update_slack_time()
 {
-	total_slack_time += MMR_TICK_COUNTER - last_idle_time;
+	total_slack_time += MMR_RTC_MTIME - last_idle_time;
 }
 
 bool sched_is_waiting_msgreq(sched_t *sched)
@@ -138,7 +138,7 @@ void sched_release_wait(sched_t *sched)
 
 void sched_update_idle_time()
 {
-	last_idle_time = MMR_TICK_COUNTER;
+	last_idle_time = MMR_RTC_MTIME;
 	MMR_SCHEDULING_REPORT = REPORT_IDLE;
 }
 
@@ -410,7 +410,7 @@ sched_t *_sched_lst(unsigned current_time)
 
 		if(scheduled->deadline != SCHED_NO_DEADLINE){
 			/* Sets the task running start time to the current time */
-			scheduled->running_start_time = MMR_TICK_COUNTER;
+			scheduled->running_start_time = MMR_RTC_MTIME;
 		}
 
 	} else { 
@@ -418,7 +418,7 @@ sched_t *_sched_lst(unsigned current_time)
 		_sched_idle_slice_time(current_time);
 	}
 
-	instant_overhead = MMR_TICK_COUNTER - instant_overhead;
+	instant_overhead = MMR_RTC_MTIME - instant_overhead;
 	schedule_overhead = (schedule_overhead + instant_overhead) >> 1;
 
 	return scheduled;
@@ -427,7 +427,7 @@ sched_t *_sched_lst(unsigned current_time)
 void sched_run()
 {
 	// puts("Scheduler called!");
-	unsigned scheduler_call_time = MMR_TICK_COUNTER;
+	unsigned scheduler_call_time = MMR_RTC_MTIME;
 
 	MMR_SCHEDULING_REPORT = REPORT_SCHEDULER;
 
@@ -446,7 +446,7 @@ void sched_run()
 
 void sched_real_time_task(sched_t *sched, unsigned period, int deadline, unsigned execution_time)
 {
-	unsigned current_time = MMR_TICK_COUNTER;
+	unsigned current_time = MMR_RTC_MTIME;
 
 	sched->period = period;
 	sched->deadline = deadline;
