@@ -13,17 +13,34 @@
 
 #pragma once
 
+#define MMR_RTC_MTIME				(*(volatile unsigned int*)0x20000000U)
+#define MMR_RTC_MTIMEH				(*(volatile unsigned int*)0x20000004U)
+#define MMR_RTC_MTIMECMP			(*(volatile unsigned int*)0x20000008U)
+#define MMR_RTC_MTIMECMPH			(*(volatile unsigned int*)0x2000000CU)
+
+/* IRQ_STATUS = PLIC IP */
+#define MMR_IRQ_STATUS				(*(volatile unsigned int*)0x40000004U)
+/* IRQ_MASK   = PLIC IE */
+#define MMR_IRQ_MASK 				(*(volatile unsigned int*)0x40000008U)
+
+/* Memphis MMR */
+#define MMR_PAGE_SIZE				(*(volatile unsigned int*)0x40200000U)
+#define MMR_NI_CONFIG				(*(volatile unsigned int*)0x40200004U)
+#define MMR_MAX_LOCAL_TASKS			(*(volatile unsigned int*)0x40200008U)
+#define MMR_N_PE_X      			(*(volatile unsigned int*)0x4020000CU)
+#define MMR_N_PE_Y      			(*(volatile unsigned int*)0x40200010U)
+
+/* Testbench MMR */
+#define MMR_END_SIM 				(*(volatile unsigned int*)0x80000000U)
+#define MMR_UART_CHAR               (*(volatile unsigned int*)0x80001000U)
+
+/* @todo: change below */
 #define MMR_UART_DATA 				(*(volatile unsigned int*)0x20000000U)	//!< Read/Write data from/to UART
-#define MMR_UART_CHAR 				(*(volatile unsigned int*)0x20000004U)	//!< Read/Write data from/to UART
 #define MMR_UART_LEN 				(*(volatile unsigned int*)0x20000008U)	//!< Read/Write data from/to UART
 #define MMR_UART_START 				(*(volatile unsigned int*)0x2000000CU)	//!< Read/Write data from/to UART
-#define MMR_IRQ_MASK 				(*(volatile unsigned int*)0x20000010U)	//!< NoC interrupt mask
-#define MMR_IRQ_STATUS				(*(volatile unsigned int*)0x20000020U)
 #define MMR_TIME_SLICE 				(*(volatile unsigned int*)0x20000060U)
 #define MMR_TASK_TERMINATED			(*(volatile unsigned int*)0x20000070U)	//!< Signals that a task terminated
-#define MMR_END_SIM 				(*(volatile unsigned int*)0x20000080U)
 #define MMR_CLOCK_HOLD				(*(volatile unsigned int*)0x20000090U)	//!< Clock hold register
-#define MMR_NI_CONFIG				(*(volatile unsigned int*)0x20000140U)	//!< Net address
 #define MMR_DMNI_SIZE 				(*(volatile unsigned int*)0x20000200U)	//!< Size of the packet to read
 #define MMR_DMNI_SIZE_2 			(*(volatile unsigned int*)0x20000204U)	//!< Size of the packet payload
 #define MMR_DMNI_ADDRESS			(*(volatile unsigned int*)0x20000210U)	//!< Address of the variable of the operation
@@ -37,7 +54,6 @@
 #define MMR_REM_PIPE_DEBUG 			(*(volatile unsigned int*)0x20000284U)	//!< Produce debug remove pipe
 #define MMR_ADD_REQUEST_DEBUG 		(*(volatile unsigned int*)0x20000290U)	//!< Produce debug message request
 #define MMR_REM_REQUEST_DEBUG		(*(volatile unsigned int*)0x20000294U)
-#define MMR_TICK_COUNTER			(*(volatile unsigned int*)0x20000300U)	//!< CPU Clock ticks counter
 #define MMR_SLACK_TIME_MONITOR 		(*(volatile unsigned int*)0x20000370U)
 #define MMR_PENDING_SERVICE_INTR	(*(volatile unsigned int*)0x20000400U)	//!< Signals there is a service pending
 #define MMR_MEM_REG_PERIPHERALS     (*(volatile unsigned int*)0x20000500U)
@@ -59,7 +75,3 @@
 #define MMR_BR_KSVC					(*(volatile unsigned int*)0x2000063CU)
 #define MMR_BR_READ_KSVC			(*(volatile unsigned int*)0x20000640U)
 #define MMR_BR_POP					(*(volatile unsigned int*)0x20000644U)
-#define MMR_PAGE_SIZE				(*(volatile unsigned int*)0x20000648U)
-#define MMR_MAX_LOCAL_TASKS			(*(volatile unsigned int*)0x2000064CU)
-#define MMR_N_PE_X      			(*(volatile unsigned int*)0x20000650U)
-#define MMR_N_PE_Y      			(*(volatile unsigned int*)0x20000654U)
