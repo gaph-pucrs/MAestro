@@ -441,7 +441,7 @@ void sched_run()
 		sched_update_idle_time();
 	}
 
-	MMR_TIME_SLICE = time_slice;
+	MMR_RTC_MTIMECMP = MMR_RTC_MTIME + time_slice;
 }
 
 void sched_real_time_task(sched_t *sched, unsigned period, int deadline, unsigned execution_time)

@@ -35,10 +35,10 @@
 #define MMR_UART_CHAR               (*(volatile unsigned int*)0x80001000U)
 
 /* @todo: change below */
-#define MMR_UART_DATA 				(*(volatile unsigned int*)0x20000000U)	//!< Read/Write data from/to UART
-#define MMR_UART_LEN 				(*(volatile unsigned int*)0x20000008U)	//!< Read/Write data from/to UART
-#define MMR_UART_START 				(*(volatile unsigned int*)0x2000000CU)	//!< Read/Write data from/to UART
-#define MMR_TIME_SLICE 				(*(volatile unsigned int*)0x20000060U)
+// #define MMR_UART_DATA 				(*(volatile unsigned int*)0x20000000U)	//!< Read/Write data from/to UART
+// #define MMR_UART_LEN 				(*(volatile unsigned int*)0x20000008U)	//!< Read/Write data from/to UART
+// #define MMR_UART_START 				(*(volatile unsigned int*)0x2000000CU)	//!< Read/Write data from/to UART
+
 #define MMR_TASK_TERMINATED			(*(volatile unsigned int*)0x20000070U)	//!< Signals that a task terminated
 #define MMR_CLOCK_HOLD				(*(volatile unsigned int*)0x20000090U)	//!< Clock hold register
 #define MMR_DMNI_SIZE 				(*(volatile unsigned int*)0x20000200U)	//!< Size of the packet to read
