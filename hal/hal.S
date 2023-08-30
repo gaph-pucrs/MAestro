@@ -12,12 +12,12 @@
 # context switching
 ##
 
-.equ MMR_CLOCK_HOLD, 0x20000090
 .equ INTR_MASK, 0x80000000
 .equ ECALL_MASK, 0x00000008
 
-.equ MMR_ADDR, 0x20000000
-
+.equ PLIC_ADDR, 0x40000000
+.equ MMR_ADDR,  0x40200000
+.equ RTC_ADDR,  0x20000000
 .equ MAX_REGISTERS, 30
 .equ PC_ADDR, MAX_REGISTERS*4
 .equ PAGE_ADDR, (MAX_REGISTERS+1)*4
@@ -36,13 +36,8 @@ _start:
 	# Clear pending interrupts
 	csrw	mip, zero
 
-	# Disable S-Mode int/exc handling
-	# Handle them in M-Mode
-	csrw	mideleg, zero
-	csrw	medeleg, zero
-
-	# Enable MEI when unmasked (if MIE=1)
-	li		t0, 0x800
+	# Enable MEI ant MTI when unmasked (if MIE=1)
+	li		t0,  0x80
 	csrw	mie, t0
 
 	.option push
@@ -55,7 +50,7 @@ _start:
 	csrw	mtvec,t1			# Write vector_entry address to mtvec
 								# Last bit is 0, means DIRECT mode
 	li		t2, MMR_ADDR	 	# HW Address base
-	lw		sp, 0x648(t2)		# Stack to top
+	lw		sp, 0(t2)			# Stack to top
 
 	# newlib related
 	la a0, _edata
@@ -74,9 +69,14 @@ _start:
 
 	jal		main
 
+	li		t0, 0x8
+	csrs	mstatus, t0
+
 	csrw	mscratch, sp	# Save sp to mscratch
 
+wfi_loop:
 	wfi
+	j		wfi_loop
 
 .section .text
 .align 4
@@ -188,10 +188,9 @@ intr_handler:
 
 isr_entry:
 	# JUMP TO INTERRUPT SERVICE ROUTINE WITH ARGS
-	li		t0, MMR_ADDR	 # HW Address base
-	lw		t1, 0x20(t0)     # IRQ_STATUS
-	lw		t2, 0x10(t0)     # IRQ_MASK
-	and		a0, t1, t2		 # Function arg
+	csrr	t0, mie			
+	csrr	t1, mip
+	and		a0, t0, t1		# Function arg
 	jal		isr_isr
 	# The function returned the scheduled task pointer in a0
 
@@ -200,7 +199,7 @@ isr_entry:
 
 	# If the idle task was scheduled, no need to restore the context
 	bnez	a0, should_restore_isr
-	wfi
+	j 		wfi_loop
 should_restore_isr:
 	# Else if the same task that was interrupted is scheduled, restore only needed
 	beq		a0, s0, restore_minimum
@@ -292,7 +291,7 @@ restore_complete:
 
 	# If the idle task was scheduled, no need to restore the context
 	bnez	 a0, should_restore_complete
-	wfi
+	j 		 wfi_loop
 should_restore_complete:
 	# Otherwise, restore context of scheduled task
 	# We don't know if the scheduled task stopped on a call or intr, so restore everything
