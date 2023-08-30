@@ -31,7 +31,7 @@ tl_t *halter = NULL;
 
 tcb_t *isr_isr(unsigned status)
 {
-	// puts("INT");
+	printf("ISR called\n");
 	sched_report_interruption();
 
 	if(sched_is_idle())
@@ -39,68 +39,70 @@ tcb_t *isr_isr(unsigned status)
 
 	bool call_scheduler = false;
 	/* Check interrupt source */
-	if(status & IRQ_BRNOC){
-		// puts("BR");
-		bcast_t bcast_packet;
-		bcast_read(&bcast_packet);
+	if(status & RISCV_MEI){
+		unsigned mei_status = MMR_IRQ_MASK & MMR_IRQ_STATUS;
+		if(mei_status & IRQ_BRNOC){
+			// puts("BR");
+			bcast_t bcast_packet;
+			bcast_read(&bcast_packet);
 
-		if(
-			MMR_DMNI_SEND_ACTIVE && 
-			(
-				bcast_packet.service == MESSAGE_REQUEST || 
-				bcast_packet.service == TASK_MIGRATION
-			)
-		){
-			/* Fake a packet as a pending service */
+			if(
+				MMR_DMNI_SEND_ACTIVE && 
+				(
+					bcast_packet.service == MESSAGE_REQUEST || 
+					bcast_packet.service == TASK_MIGRATION
+				)
+			){
+				/* Fake a packet as a pending service */
+				packet_t *packet = malloc(sizeof(packet_t));
+				if(packet == NULL){
+					puts("FATAL: could not allocate memory.");
+					while(1);
+				}
+
+				bcast_fake_packet(&bcast_packet, packet);
+				// puts("Faking packet as pending service\n");
+				psvc_push_back(packet);
+			} else {
+				call_scheduler |= isr_handle_broadcast(&bcast_packet);
+			}
+		} else if(mei_status & IRQ_NOC){
+			// puts("NOC");
 			packet_t *packet = malloc(sizeof(packet_t));
 			if(packet == NULL){
 				puts("FATAL: could not allocate memory.");
 				while(1);
 			}
 
-			bcast_fake_packet(&bcast_packet, packet);
-			// puts("Faking packet as pending service\n");
-			psvc_push_back(packet);
-		} else {
-			call_scheduler |= isr_handle_broadcast(&bcast_packet);
-		}
-	} else if(status & IRQ_NOC){
-		// puts("NOC");
-		packet_t *packet = malloc(sizeof(packet_t));
-		if(packet == NULL){
-			puts("FATAL: could not allocate memory.");
-			while(1);
-		}
+			dmni_read(packet, PKT_SIZE);
 
-		dmni_read(packet, PKT_SIZE);
+			if(
+				MMR_DMNI_SEND_ACTIVE && 
+				(packet->service == DATA_AV || packet->service == MESSAGE_REQUEST)
+			){
+				psvc_push_back(packet);
+			} else {
+				call_scheduler = isr_handle_pkt(packet);
+				free(packet);
+			}
+		} else if(mei_status & IRQ_PENDING_SERVICE){
+			// puts("PEND");
+			/* Pending packet. Handle it */
 
-		if(
-			MMR_DMNI_SEND_ACTIVE && 
-			(packet->service == DATA_AV || packet->service == MESSAGE_REQUEST)
-		){
-			psvc_push_back(packet);
-		} else {
+			packet_t *packet = psvc_front();
+
+			if(packet == NULL){
+				puts("FATAL: Pending interrupt but no packet.");
+				while(1);
+			}
+
+			psvc_pop_front();
 			call_scheduler = isr_handle_pkt(packet);
 			free(packet);
-		}
-		
-	} else if(status & IRQ_PENDING_SERVICE){
-		// puts("PEND");
-		/* Pending packet. Handle it */
-
-		packet_t *packet = psvc_front();
-
-		if(packet == NULL){
-			puts("FATAL: Pending interrupt but no packet.");
-			while(1);
-		}
-
-		psvc_pop_front();
-		call_scheduler = isr_handle_pkt(packet);
-		free(packet);
-		
-	} else if(status & IRQ_SCHEDULER){
-		// puts("SCHED");
+			
+		} 
+	} else if(status & RISCV_MTI){
+		puts("SCHED");
 
 		tcb_t *current = sched_get_current_tcb();
 
@@ -114,7 +116,7 @@ tcb_t *isr_isr(unsigned status)
 		}
 	}
 
-	call_scheduler |= (status & IRQ_SCHEDULER);
+	call_scheduler |= (status & RISCV_MTI);
 
 	tcb_t *current;
 
@@ -131,6 +133,7 @@ tcb_t *isr_isr(unsigned status)
 		}
 	}
 
+	printf("Scheduled %p\n", current);
     /* Runs the scheduled task */
     return current;
 }
@@ -174,7 +177,7 @@ bool isr_handle_broadcast(bcast_t *packet)
 			printf(
 				"ERROR: unknown broadcast %x at time %d\n", 
 				packet->service, 
-				MMR_TICK_COUNTER
+				MMR_RTC_MTIME
 			);
 			return false;
 	}
@@ -275,7 +278,7 @@ bool isr_handle_pkt(volatile packet_t *packet)//
 				packet->bss_size
 			);
 		default:
-			printf("ERROR: unknown interrupt at time %d\n", MMR_TICK_COUNTER);
+			printf("ERROR: unknown interrupt at time %d\n", MMR_RTC_MTIME);
 			return false;
 	}
 }
@@ -595,7 +598,7 @@ bool isr_task_allocation(
 	printf(
 		"Task id %d allocated at %d with entry point %p and offset %p\n", 
 		id, 
-		MMR_TICK_COUNTER, 
+		MMR_RTC_MTIME, 
 		entry_point,
 		tcb_get_offset(tcb)
 	);
@@ -783,7 +786,7 @@ bool isr_migration_sched(int id, unsigned period, int deadline, unsigned exec_ti
 	printf(
 		"Task id %d allocated by task migration at time %d from processor %x\n", 
 		id, 
-		MMR_TICK_COUNTER, 
+		MMR_RTC_MTIME, 
 		source
 	);
 

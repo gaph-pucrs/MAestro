@@ -21,6 +21,11 @@
 #include "task_control.h"
 #include "broadcast.h"
 
+enum RISCV_FLAGS {
+	RISCV_MTI = 0x00000080,
+	RISCV_MEI = 0x00000800
+};
+
 enum IRQ_FLAGS {
 	IRQ_PENDING_SERVICE = 0x01,
 	IRQ_SLACK_TIME = 0x02,
