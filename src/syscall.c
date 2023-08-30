@@ -577,7 +577,7 @@ int sys_readpipe(tcb_t *tcb, void *buf, size_t size, int prod_task, bool sync)
 
 unsigned int sys_get_tick()	
 {	
-	return MMR_TICK_COUNTER;	
+	return MMR_RTC_MTIME;	
 }
 
 int sys_realtime(tcb_t *tcb, unsigned period, int deadline, unsigned exec_time)

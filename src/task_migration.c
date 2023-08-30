@@ -99,7 +99,7 @@ void tm_migrate(tcb_t *tcb)
 	printf(
 		"Task id %d migrated at time %d to processor %x\n", 
 		id, 
-		MMR_TICK_COUNTER, 
+		MMR_RTC_MTIME, 
 		addr
 	);
 	

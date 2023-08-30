@@ -182,5 +182,5 @@ void pkt_set_dmni_info(packet_t *packet, size_t payload_size)
 	packet->payload_size = (PKT_SIZE - 2) + payload_size;
 	packet->transaction = 0;
 	packet->source_PE = MMR_NI_CONFIG;
-	packet->timestamp = MMR_TICK_COUNTER;
+	packet->timestamp = MMR_RTC_MTIME;
 }

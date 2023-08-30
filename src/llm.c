@@ -66,7 +66,7 @@ bool llm_has_monitor(int mon_id)
 
 void llm_rt(unsigned *last_monitored, int id, unsigned slack_time, unsigned remaining_exec_time)
 {
-	unsigned now = MMR_TICK_COUNTER;
+	unsigned now = MMR_RTC_MTIME;
 
 	if(now - (*last_monitored) < MON_INTERVAL_QOS)
 		return;
