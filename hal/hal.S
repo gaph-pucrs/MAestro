@@ -56,8 +56,10 @@ _start:
 	li		t2, MMR_ADDR	 	# HW Address base
 	lw		sp, 0(t2)			# Stack to top
 	
+	addi 	sp, sp, -1
 	csrw	mvmds, sp
 	csrw	mvmis, sp
+	addi	sp, sp, 1
 	li		t3, 1
 	csrw	mvmctl, t3
 
@@ -260,6 +262,7 @@ restore_minimum:
 
 	lw		 a0, 32(a0)
 
+	csrw	mstatus, zero
 	mret
 
 ecall_handler:
@@ -346,6 +349,7 @@ should_restore_complete:
 
 	lw		 a0, 32(a0)
 	
+	csrw	mstatus, zero
 	mret
 
 ecall_return:
@@ -375,4 +379,5 @@ ecall_return:
 	addi	 sp, sp, 8	# Pop stack
 	csrrw	 sp, mscratch, sp	# Swap back kernel sp with task sp, faster than loading from memory
 
+	csrw	mstatus, zero
 	mret
