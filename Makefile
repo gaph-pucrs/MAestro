@@ -25,11 +25,7 @@ CCOBJ = $(patsubst %.c, %.o, $(CCSRC))
 ASSRC = $(wildcard $(HALDIR)/*.S)
 ASOBJ = $(patsubst %.S,%.o, $(ASSRC))
 
-all: $(TARGET).txt $(TARGET).lst
-
-$(TARGET).txt: $(TARGET).bin
-	@printf "${RED}Generating %s...${NC}\n" "$@"
-	@hexdump -v -e '1/4 "%08x" "\n"' $< > $@
+all: $(TARGET).bin $(TARGET).lst
 
 $(TARGET).bin: $(TARGET).elf
 	@printf "${RED}Generating %s...${NC}\n" "$@"
