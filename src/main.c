@@ -71,7 +71,7 @@ int main()
 		0,	/* FIX */ 
 		-1, 
 		-1,
-		0	/* FIX */ 
+		0x5c	/* FIX */ 
 	);
 
 	sched_t *sched = sched_emplace_back(tcb);
