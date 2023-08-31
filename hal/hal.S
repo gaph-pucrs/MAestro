@@ -12,7 +12,7 @@
 # context switching
 ##
 
-.equ INTR_MASK, 0x80000000
+.equ INTR_MASK,  0x80000000
 .equ ECALL_MASK, 0x00000008
 
 .equ PLIC_ADDR, 0x40000000
@@ -22,7 +22,11 @@
 .equ PC_ADDR, MAX_REGISTERS*4
 .equ PAGE_ADDR, (MAX_REGISTERS+1)*4
 
-.equ mrar, 0x7C0
+.equ mvmdo,  0x7C0
+.equ mvmds,  0x7C1
+.equ mvmio,  0x7C2
+.equ mvmis,  0x7C3
+.equ mvmctl, 0x7C4
 
 .section .init
 .align 4
@@ -51,6 +55,11 @@ _start:
 								# Last bit is 0, means DIRECT mode
 	li		t2, MMR_ADDR	 	# HW Address base
 	lw		sp, 0(t2)			# Stack to top
+	
+	csrw	mvmds, sp
+	csrw	mvmis, sp
+	li		t3, 1
+	csrw	mvmctl, t3
 
 	# newlib related
 	la a0, _edata
@@ -69,10 +78,10 @@ _start:
 
 	jal		main
 
+	csrw	mscratch, sp	# Save sp to mscratch
+
 	li		t0, 0x8
 	csrs	mstatus, t0
-
-	csrw	mscratch, sp	# Save sp to mscratch
 
 wfi_loop:
 	wfi
@@ -224,7 +233,8 @@ should_restore_isr:
 	# Load offset from scheduled task
 	lw		t1, PAGE_ADDR(a0)
 	lw		t1, 0(t1)
-	csrw	mrar, t1
+	csrw	mvmdo, t1
+	csrw	mvmio, t1
 
 	# Continue to restore the remaining context
 restore_minimum:
@@ -300,7 +310,8 @@ should_restore_complete:
 
 	lw		 t1, PAGE_ADDR(a0)
 	lw		 t1, 0(t1)
-	csrw	 mrar, t1			# Load task offset
+	csrw	mvmdo, t1
+	csrw	mvmio, t1
 
 	lw		 ra,  0(a0)
 	lw		 sp,  4(a0)
