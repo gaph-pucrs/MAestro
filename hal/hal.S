@@ -141,6 +141,10 @@ save_minimum:
 
 	csrr	t3, mscratch	# Load sp that is in mscratch
 	sw		t3,  4(s0)		# Save sp to allow stack check by kernel
+
+	csrr	t4, mepc		# Always save mepc because we must add 4 before returning
+	addi	t4, t4, 4
+	sw		t4, PC_ADDR(s0)
 	
 	# Check if it was ecall
 	csrr	t0, mcause					# Load mcause
@@ -194,9 +198,6 @@ intr_handler:
 	sw		s10, 96(s0)
 	sw		s11,100(s0)
 
-	csrr	 t2, mepc			# Load the PC
-	sw		 t2, PC_ADDR(s0)	# Save the PC to current
-
 isr_entry:
 	# JUMP TO INTERRUPT SERVICE ROUTINE WITH ARGS
 	csrr	t0, mie			
@@ -228,10 +229,6 @@ should_restore_isr:
 	lw		s10, 96(a0)
 	lw		s11,100(a0)
 
-	# Load epc from scheduled task
-	lw		t0, PC_ADDR(a0)
-	csrw	mepc, t0
-
 	# Load offset from scheduled task
 	lw		t1, PAGE_ADDR(a0)
 	lw		t1, 0(t1)
@@ -240,6 +237,10 @@ should_restore_isr:
 
 	# Continue to restore the remaining context
 restore_minimum:
+	# Load epc from scheduled task
+	lw		t0, PC_ADDR(a0)
+	csrw	mepc, t0
+
 	lw		 ra,  0(a0)
 	lw		 sp,  4(a0)
 	lw		 gp,  8(a0)
@@ -295,9 +296,6 @@ ecall_handler:
     sw		 s9, 92(s0)
 	sw		s10, 96(s0)
 	sw		s11,100(s0)
-
-	csrr	 t3, mepc		# Task pc is in mepc
-	sw		 t3, PC_ADDR(s0)
 
 restore_complete:
 	csrw	 mscratch, sp	# Save kernel sp
@@ -356,6 +354,8 @@ ecall_return:
 	# Restore minimum context
 	# Need to restore all caller-saved registers
 	# Callee registers are taken care by the ABI (except s0)
+	lw		 t0, PC_ADDR(a0)
+	csrw	 mepc, t0			# Load task PC
 
 	lw		 ra,  0(s0)
 	lw		 t0, 12(s0)
