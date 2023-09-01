@@ -66,12 +66,12 @@ int main()
 	tcb_alloc(
 		tcb, 
 		256, 
-		0,	/* FIX */ 
-		0,	/* FIX */ 
-		0,	/* FIX */ 
+		10336,	/* FIX */ 
+		108,	/* FIX */ 
+		516,	/* FIX */ 
 		-1, 
 		-1,
-		0x5c	/* FIX */ 
+		0x68	/* FIX */ 
 	);
 
 	sched_t *sched = sched_emplace_back(tcb);
