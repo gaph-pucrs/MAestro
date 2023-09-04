@@ -32,7 +32,7 @@
 #include "llm.h"
 #include "mmr.h"
 
-static const unsigned SCHED_MAX_TIME_SLICE = 16318;	//!< Standard time slice value for task execution
+static const unsigned SCHED_MAX_TIME_SLICE = 100000;	//!< Standard time slice value for task execution
 static const unsigned REPORT_SCHEDULER = 0x40000;
 static const unsigned REPORT_IDLE = 0x80000;
 static const unsigned REPORT_INTERRUPTION = 0x10000;
@@ -436,12 +436,11 @@ void sched_run()
 	if(sched != NULL){
 		current = sched->tcb;
 		sched_report(tcb_get_id(current));
+		MMR_RTC_MTIMECMP = MMR_RTC_MTIME + time_slice;
 	} else {
 		current = NULL;
 		sched_update_idle_time();
 	}
-
-	MMR_RTC_MTIMECMP = MMR_RTC_MTIME + time_slice;
 }
 
 void sched_real_time_task(sched_t *sched, unsigned period, int deadline, unsigned execution_time)
