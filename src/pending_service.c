@@ -28,7 +28,7 @@ list_entry_t *psvc_push_back(packet_t *packet)
 	if(entry == NULL)
 		return NULL;
 
-	MMR_PENDING_SERVICE_INTR = 1;
+	MMR_DMNI_PENDING_SVC = 1;
 	return entry;
 }
 
@@ -47,7 +47,7 @@ void psvc_pop_front()
 	list_pop_front(&_psvcs);
 
 	if(list_empty(&_psvcs))
-		MMR_PENDING_SERVICE_INTR = 0;
+		MMR_DMNI_PENDING_SVC = 0;
 }
 
 bool psvc_empty()

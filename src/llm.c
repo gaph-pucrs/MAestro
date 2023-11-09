@@ -33,7 +33,7 @@ void llm_init()
 
 void llm_set_observer(enum MONITOR_TYPE type, int addr)
 {
-	int pe_addr = MMR_NI_CONFIG;
+	int pe_addr = MMR_DMNI_ADDRESS;
 	uint8_t pe_x = pe_addr >> 8;
 	uint8_t pe_y = pe_addr & 0xFF;
 	uint8_t obs_x = addr >> 8;
@@ -56,7 +56,7 @@ void llm_clear_table(int task_id)
 
 	packet.payload = task_id;
 
-	while(!bcast_send(&packet, MMR_NI_CONFIG, BR_SVC_ALL));
+	while(!bcast_send(&packet, MMR_DMNI_ADDRESS, BR_SVC_ALL));
 }
 
 bool llm_has_monitor(int mon_id)

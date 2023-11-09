@@ -96,6 +96,10 @@ void tm_migrate(tcb_t *tcb)
 	tm_send_sched(tcb, id, addr);
 	
 	/* Code (.text) is in another function */
+	/**
+	 * @todo
+	 * Create a function to get the 64-bit timer
+	 */
 	printf(
 		"Task id %d migrated at time %d to processor %x\n", 
 		id, 
@@ -220,7 +224,7 @@ void tm_send_opipe(tcb_t *tcb, int id, int addr)
 void tm_send_stack(tcb_t *tcb, int id, int addr)
 {
 	/* Get the stack pointer */
-	size_t stack_size = MMR_PAGE_SIZE - tcb_get_sp(tcb);
+	size_t stack_size = MMR_DMNI_DMEM_PAGE_SIZE - tcb_get_sp(tcb);
 
 	if(stack_size == 0)
 		return;
@@ -234,7 +238,7 @@ void tm_send_stack(tcb_t *tcb, int id, int addr)
 
 	dmni_send(
 		packet, 
-		tcb_get_offset(tcb) + MMR_PAGE_SIZE - stack_size, 
+		tcb_get_offset(tcb) + MMR_DMNI_DMEM_PAGE_SIZE - stack_size, 
 		stack_size >> 2, 
 		false
 	);

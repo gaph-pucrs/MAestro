@@ -24,7 +24,7 @@
 
 int main()
 {
-	printf("Initializing PE %x\n", MMR_NI_CONFIG);
+	printf("Initializing PE %x\n", MMR_DMNI_ADDRESS);
 
 	page_init();
 	app_init();
@@ -35,57 +35,6 @@ int main()
 	tm_init();
 	llm_init();
 	pkt_init();
-
-	/**
-	 * @todo Change this to properly address PLIC changes
-	*/
-	// MMR_IRQ_MASK = (
-	// 	IRQ_BRNOC |
-	// 	IRQ_SCHEDULER | 
-	// 	IRQ_NOC | 
-	// 	IRQ_PENDING_SERVICE
-	// );
-
-	/**
-	 * @brief RS5-only: allocate initial app (already in memory)
-	 */
-	tcb_t *tcb = malloc(sizeof(tcb_t));
-
-	if(tcb == NULL){
-		puts("FATAL: could not allocate TCB");
-		while(true);
-	}
-
-	list_entry_t *entry = tcb_push_back(tcb);
-	if(entry == NULL){
-		puts("FATAL: could not allocate TCB");
-		while(true);
-	}
-
-	/* Initializes the TCB */
-	tcb_alloc(
-		tcb, 
-		256, 
-		10336,	/* FIX */ 
-		108,	/* FIX */ 
-		516,	/* FIX */ 
-		-1, 
-		-1,
-		0x68	/* FIX */ 
-	);
-
-	sched_t *sched = sched_emplace_back(tcb);
-
-	if(sched == NULL){
-		puts("FATAL: unable to allocate scheduler");
-		while(true);
-	}
-
-	/* Enable timer interrupt to auto-schedule the task that is idle right now */
-	MMR_RTC_MTIME = 0;
-	MMR_RTC_MTIMEH = 0;
-	MMR_RTC_MTIMECMP = 100000; /* 1 ms */
-	MMR_RTC_MTIMECMPH = 0;
 
 	return 0;
 }

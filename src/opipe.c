@@ -37,7 +37,7 @@ int opipe_push(opipe_t *opipe, void *msg, size_t size, int prod_task, int cons_t
 	for(int i = align_size - padding_size; i < align_size; i++)
 		((char*)opipe->buf)[i] = padding_size;
 
-	MMR_ADD_PIPE_DEBUG = (prod_task << 16) | (cons_task & 0xFFFF);
+	MMR_DBG_ADD_PIPE = (prod_task << 16) | (cons_task & 0xFFFF);
 
 	return size;
 }

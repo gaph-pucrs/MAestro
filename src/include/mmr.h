@@ -13,65 +13,76 @@
 
 #pragma once
 
-#define MMR_RTC_MTIME				(*(volatile unsigned int*)0x20000000U)
-#define MMR_RTC_MTIMEH				(*(volatile unsigned int*)0x20000004U)
-#define MMR_RTC_MTIMECMP			(*(volatile unsigned int*)0x20000008U)
-#define MMR_RTC_MTIMECMPH			(*(volatile unsigned int*)0x2000000CU)
+/* RTC MMR */
+#define MMR_RTC_MTIME				(*(volatile unsigned int*)0x02000000U)
+#define MMR_RTC_MTIMEH				(*(volatile unsigned int*)0x02000004U)
+#define MMR_RTC_MTIMECMP			(*(volatile unsigned int*)0x02000008U)
+#define MMR_RTC_MTIMECMPH			(*(volatile unsigned int*)0x0200000CU)
 
-/* IRQ_STATUS = PLIC IP */
-#define MMR_IRQ_STATUS				(*(volatile unsigned int*)0x40000004U)
-/* IRQ_MASK   = PLIC IE */
-#define MMR_IRQ_MASK 				(*(volatile unsigned int*)0x40000008U)
+/* PLIC MMR */
+#define MMR_PLIC_ID					(*(volatile unsigned int*)0x04000000U)
+#define MMR_PLIC_IP					(*(volatile unsigned int*)0x04000004U)
+#define MMR_PLIC_IE					(*(volatile unsigned int*)0x04000008U)
 
-/* Memphis MMR */
-#define MMR_PAGE_SIZE				(*(volatile unsigned int*)0x40200000U)
-#define MMR_NI_CONFIG				(*(volatile unsigned int*)0x40200004U)
-#define MMR_MAX_LOCAL_TASKS			(*(volatile unsigned int*)0x40200008U)
-#define MMR_N_PE_X      			(*(volatile unsigned int*)0x4020000CU)
-#define MMR_N_PE_Y      			(*(volatile unsigned int*)0x40200010U)
-#define MMR_PENDING_SERVICE_INTR	(*(volatile unsigned int*)0x40200400U)
+/* DMNI MMR */
+#define MMR_DMNI_STATUS				(*(volatile unsigned int*)0x08000000U)
+#define MMR_DMNI_IP					(*(volatile unsigned int*)0x08000004U)
+#define MMR_DMNI_PENDING_SVC        (*(volatile unsigned int*)0x08000008U)
+#define MMR_DMNI_REL_PERIPHERAL		(*(volatile unsigned int*)0x0800000CU)
+#define MMR_DMNI_ADDRESS			(*(volatile unsigned int*)0x08000010U)
+#define MMR_DMNI_MANYCORE_SIZE		(*(volatile unsigned int*)0x08000014U)
+#define MMR_DMNI_MAX_LOCAL_TASKS	(*(volatile unsigned int*)0x08000018U)
+#define MMR_DMNI_IMEM_PAGE_SIZE		(*(volatile unsigned int*)0x0800001CU)
+#define MMR_DMNI_DMEM_PAGE_SIZE		(*(volatile unsigned int*)0x08000020U)
+#define MMR_DMNI_HERMES_START		(*(volatile unsigned int*)0x08000024U)
+#define MMR_DMNI_HERMES_OPERATION	(*(volatile unsigned int*)0x08000028U)
+#define MMR_DMNI_HERMES_SIZE		(*(volatile unsigned int*)0x0800002CU)
+#define MMR_DMNI_HERMES_SIZE_2		(*(volatile unsigned int*)0x08000030U)
+#define MMR_DMNI_HERMES_ADDRESS		(*(volatile unsigned int*)0x08000034U)
+#define MMR_DMNI_HERMES_ADDRESS_2	(*(volatile unsigned int*)0x08000038U)
+#define MMR_DMNI_HERMES_FLITS_AVL	(*(volatile unsigned int*)0x0800003CU)
+#define MMR_DMNI_BRLITE_START		(*(volatile unsigned int*)0x08000040U)
+#define MMR_DMNI_BRLITE_SERVICE		(*(volatile unsigned int*)0x08000044U)
+#define MMR_DMNI_BRLITE_KSVC		(*(volatile unsigned int*)0x08000048U)
+#define MMR_DMNI_BRLITE_TARGET		(*(volatile unsigned int*)0x0800004CU)
+#define MMR_DMNI_BRLITE_PRODUCER	(*(volatile unsigned int*)0x08000050U)
+#define MMR_DMNI_BRLITE_PAYLOAD		(*(volatile unsigned int*)0x08000054U)
+#define MMR_DMNI_BRSVC_POP			(*(volatile unsigned int*)0x08000058U)
+#define MMR_DMNI_BRSVC_KSVC			(*(volatile unsigned int*)0x0800005CU)
+#define MMR_DMNI_BRSVC_PRODUCER		(*(volatile unsigned int*)0x08000060U)
+#define MMR_DMNI_BRSVC_PAYLOAD		(*(volatile unsigned int*)0x08000064U)
+#define MMR_DMNI_BRMON_CLEAR		(*(volatile unsigned int*)0x08000068U)
+#define MMR_DMNI_BRMON_QOS_PTR		(*(volatile unsigned int*)0x0800006CU)
+#define MMR_DMNI_BRMON_PWR_PTR		(*(volatile unsigned int*)0x08000070U)
 
-/* Memphis Peripherals */
-#define MMR_DMNI_SIZE 				(*(volatile unsigned int*)0x40400200U)
-#define MMR_DMNI_SIZE_2 			(*(volatile unsigned int*)0x40400204U)
-#define MMR_DMNI_ADDRESS			(*(volatile unsigned int*)0x40400210U)
-#define MMR_DMNI_ADDRESS_2 			(*(volatile unsigned int*)0x40400214U)
-#define MMR_DMNI_OP					(*(volatile unsigned int*)0x40400220U)
-#define MMR_DMNI_START				(*(volatile unsigned int*)0x40400230U)
-#define MMR_DMNI_SEND_ACTIVE		(*(volatile unsigned int*)0x40400250U)
-#define MMR_DMNI_RECEIVE_ACTIVE		(*(volatile unsigned int*)0x40400260U)
-#define MMR_MEM_REG_PERIPHERALS     (*(volatile unsigned int*)0x40400500U)
-#define MMR_BR_LOCAL_BUSY     		(*(volatile unsigned int*)0x40400600U)
-#define MMR_BR_PAYLOAD     			(*(volatile unsigned int*)0x40400604U)
-#define MMR_BR_TARGET     			(*(volatile unsigned int*)0x40400608U)
-#define MMR_BR_SERVICE     			(*(volatile unsigned int*)0x4040060CU)
-#define MMR_BR_START     			(*(volatile unsigned int*)0x40400610U)
-#define MMR_BR_HAS_MESSAGE			(*(volatile unsigned int*)0x40400614U)
-#define MMR_BR_READ_PAYLOAD			(*(volatile unsigned int*)0x40400618U)
-#define MMR_MON_PTR_QOS				(*(volatile unsigned int*)0x4040061CU)
-#define MMR_MON_PTR_PWR				(*(volatile unsigned int*)0x40400620U)
-#define MMR_MON_PTR_2				(*(volatile unsigned int*)0x40400624U)
-#define MMR_MON_PTR_3				(*(volatile unsigned int*)0x40400628U)
-#define MMR_MON_PTR_4				(*(volatile unsigned int*)0x4040062CU)
-#define MMR_BR_PRODUCER				(*(volatile unsigned int*)0x40400630U)
-#define MMR_DMNI_CLEAR_MONITOR		(*(volatile unsigned int*)0x40400634U)
-#define MMR_BR_READ_PRODUCER		(*(volatile unsigned int*)0x40400638U)
-#define MMR_BR_KSVC					(*(volatile unsigned int*)0x4040063CU)
-#define MMR_BR_READ_KSVC			(*(volatile unsigned int*)0x40400640U)
-#define MMR_BR_POP					(*(volatile unsigned int*)0x40400644U)
+/* DEBUG MMR */
+#define MMR_DBG_PUTC				(*(volatile unsigned int*)0x80000000U)
+#define MMR_DBG_HALT				(*(volatile unsigned int*)0x80000004U)
+#define MMR_DBG_TASK_TERMINATED		(*(volatile unsigned int*)0x80000008U)
+#define MMR_DBG_SCHED_REPORT		(*(volatile unsigned int*)0x8000000CU)
+#define MMR_DBG_ADD_PIPE			(*(volatile unsigned int*)0x80000010U)
+#define MMR_DBG_REM_PIPE			(*(volatile unsigned int*)0x80000014U)
+#define MMR_DBG_ADD_REQ				(*(volatile unsigned int*)0x80000018U)
+#define MMR_DBG_REM_REQ				(*(volatile unsigned int*)0x8000001CU)
+#define MMR_DBG_ADD_DAV				(*(volatile unsigned int*)0x80000020U)
+#define MMR_DBG_REM_DAV				(*(volatile unsigned int*)0x80000024U)
+#define MMR_DBG_SLACK_TIME_MON		(*(volatile unsigned int*)0x80000028U)
 
-/* Testbench MMR */
-#define MMR_END_SIM 				(*(volatile unsigned int*)0x80000000U)
-#define MMR_UART_CHAR               (*(volatile unsigned int*)0x80001000U)
-#define MMR_TASK_TERMINATED			(*(volatile unsigned int*)0x80200000U)
-#define MMR_SCHEDULING_REPORT		(*(volatile unsigned int*)0x80200270U)
-#define MMR_ADD_PIPE_DEBUG			(*(volatile unsigned int*)0x80200280U)
-// #define MMR_REM_PIPE_DEBUG 			(*(volatile unsigned int*)0x80200284U)
-// #define MMR_ADD_REQUEST_DEBUG 		(*(volatile unsigned int*)0x80200290U)
-// #define MMR_REM_REQUEST_DEBUG		(*(volatile unsigned int*)0x80200294U)
-// #define MMR_SLACK_TIME_MONITOR 		(*(volatile unsigned int*)0x80200370U)
+enum DMNI_STATUS {
+	DMNI_STATUS_SEND_ACTIVE		= 0x00000001,
+	DMNI_STATUS_RECV_ACTIVE		= 0x00000002,
+	DMNI_STATUS_LOCAL_BUSY		= 0x00000004,
+	DMNI_STATUS_MON_CLEAR		= 0x00000008,
+	DMNI_STATUS_REL_PERIPHERAL	= 0x00000010
+};
 
-/* @todo: change below */
-// #define MMR_UART_DATA 				(*(volatile unsigned int*)0x20000000U)	//!< Read/Write data from/to UART
-// #define MMR_UART_LEN 				(*(volatile unsigned int*)0x20000008U)	//!< Read/Write data from/to UART
-// #define MMR_UART_START 				(*(volatile unsigned int*)0x2000000CU)	//!< Read/Write data from/to UART
+enum DMNI_IP {
+	DMNI_IP_HERMES				= 0x00000001,
+	DMNI_IP_BRLITE				= 0x00000002,
+	DMNI_IP_PENDING				= 0x00000004
+};
+
+enum DMNI_OPERATION {
+	DMNI_OPERATION_READ,
+	DMNI_OPERATION_WRITE
+};

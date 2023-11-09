@@ -41,11 +41,8 @@ int _write(int file, char *ptr, int len)
 		return -1;
     }
 
-	// MMR_UART_LEN = len;
-	// MMR_UART_DATA = (unsigned)ptr;
-	// MMR_UART_START = 1;
 	for(int i = 0; i < len; i++)
-		(*(volatile unsigned int*)0x80001000) = ptr[i];
+		MMR_DBG_PUTC = ptr[i];
 
 	return len;
 }

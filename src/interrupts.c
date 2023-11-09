@@ -40,14 +40,13 @@ tcb_t *isr_isr(unsigned status)
 	bool call_scheduler = false;
 	/* Check interrupt source */
 	if(status & RISCV_MEI){
-		unsigned mei_status = MMR_IRQ_MASK & MMR_IRQ_STATUS;
-		if(mei_status & IRQ_BRNOC){
+		if(MMR_DMNI_IP & DMNI_IP_BRLITE){
 			// puts("BR");
 			bcast_t bcast_packet;
 			bcast_read(&bcast_packet);
 
 			if(
-				MMR_DMNI_SEND_ACTIVE && 
+				(MMR_DMNI_STATUS & DMNI_STATUS_SEND_ACTIVE) && 
 				(
 					bcast_packet.service == MESSAGE_REQUEST || 
 					bcast_packet.service == TASK_MIGRATION
@@ -66,7 +65,7 @@ tcb_t *isr_isr(unsigned status)
 			} else {
 				call_scheduler |= isr_handle_broadcast(&bcast_packet);
 			}
-		} else if(mei_status & IRQ_NOC){
+		} else if(MMR_DMNI_IP & DMNI_IP_HERMES){
 			// puts("NOC");
 			packet_t *packet = malloc(sizeof(packet_t));
 			if(packet == NULL){
@@ -77,7 +76,7 @@ tcb_t *isr_isr(unsigned status)
 			dmni_read(packet, PKT_SIZE);
 
 			if(
-				MMR_DMNI_SEND_ACTIVE && 
+				(MMR_DMNI_STATUS & DMNI_STATUS_SEND_ACTIVE) && 
 				(packet->service == DATA_AV || packet->service == MESSAGE_REQUEST)
 			){
 				psvc_push_back(packet);
@@ -85,7 +84,7 @@ tcb_t *isr_isr(unsigned status)
 				call_scheduler = isr_handle_pkt(packet);
 				free(packet);
 			}
-		} else if(mei_status & IRQ_PENDING_SERVICE){
+		} else if(MMR_DMNI_IP & DMNI_IP_PENDING){
 			// puts("PEND");
 			/* Pending packet. Handle it */
 
@@ -157,7 +156,7 @@ bool isr_handle_broadcast(bcast_t *packet)
 		case DATA_AV:
 			// printf("Received DATA_AV via BrNoC with pre-cons %x and pre-prod %x\n", task_field, packet->src_id);
 			return isr_data_available(
-				bcast_convert_id(task_field, MMR_NI_CONFIG), 
+				bcast_convert_id(task_field, MMR_DMNI_ADDRESS), 
 				bcast_convert_id(packet->src_id, addr_field), 
 				addr_field
 			);
@@ -165,7 +164,7 @@ bool isr_handle_broadcast(bcast_t *packet)
 			return isr_message_request(
 				bcast_convert_id(packet->src_id, addr_field), 
 				addr_field, 
-				bcast_convert_id(task_field, MMR_NI_CONFIG)
+				bcast_convert_id(task_field, MMR_DMNI_ADDRESS)
 			);
 		case ABORT_TASK:
 			return isr_abort_task(task_field);
@@ -308,7 +307,7 @@ bool isr_message_request(int cons_task, int cons_addr, int prod_task)
 		if(pmsg_find(cons_task) != NULL){
 			/* Send data available to the right processor */
 			tl_t dav;
-			tl_set(&dav, MEMPHIS_KERNEL_MSG | MMR_NI_CONFIG, MMR_NI_CONFIG);
+			tl_set(&dav, MEMPHIS_KERNEL_MSG | MMR_DMNI_ADDRESS, MMR_DMNI_ADDRESS);
 
 			tl_send_dav(&dav, cons_task, cons_addr);
 		}
@@ -356,7 +355,7 @@ bool isr_message_request(int cons_task, int cons_addr, int prod_task)
 				list_t *msgreqs = tcb_get_msgreqs(prod_tcb);
 				tl_emplace_back(msgreqs, cons_task, cons_addr);
 			} else {	/* Message found */
-				if(cons_addr == MMR_NI_CONFIG){
+				if(cons_addr == MMR_DMNI_ADDRESS){
 					/* Message Request came from NoC but the consumer migrated to this address */
 					/* Writes to the consumer page address */
 					tcb_t *cons_tcb = tcb_find(cons_task);
@@ -503,7 +502,7 @@ bool isr_data_available(int cons_task, int prod_task, int prod_addr)
 		/* This message was directed to kernel */
 		/* Kernel is always ready to receive. Send message request */
 		tl_t msgreq;
-		tl_set(&msgreq, cons_task, MMR_NI_CONFIG);
+		tl_set(&msgreq, cons_task, MMR_DMNI_ADDRESS);
 
 		tl_send_msgreq(&msgreq, prod_task, prod_addr);
 	} else {
@@ -791,7 +790,7 @@ bool isr_migration_sched(int id, unsigned period, int deadline, unsigned exec_ti
 	);
 
 	app_t *app = tcb_get_app(tcb);
-	app_update(app, id, MMR_NI_CONFIG);
+	app_update(app, id, MMR_DMNI_ADDRESS);
 
 	tl_t *mapper = tcb_get_mapper(tcb);
 	int task_migrated[] = {TASK_MIGRATED, id};
@@ -893,7 +892,7 @@ bool isr_migration_stack(int id, size_t size)
 	}
 
 	dmni_read(
-		tcb_get_offset(tcb) + MMR_PAGE_SIZE - size, 
+		tcb_get_offset(tcb) + MMR_DMNI_DMEM_PAGE_SIZE - size, 
 		size >> 2
 	);
 
@@ -994,7 +993,7 @@ bool isr_migration_app(int id, size_t task_cnt)
 
 bool isr_clear_mon_table(int task)
 {
-	MMR_DMNI_CLEAR_MONITOR = task;
+	MMR_DMNI_BRMON_CLEAR = task;
 	return false;
 }
 

@@ -127,7 +127,12 @@ tcb_t *sys_syscall(
 		tcb_set_ret(current, ret);
 	}
 
-	schedule_after_syscall |= (MMR_IRQ_STATUS & MMR_IRQ_MASK & IRQ_SCHEDULER);
+	/* Schedule if timer has passed */
+	/**
+	 * @todo
+	 * Create a function to get IRQ status (MIE & MIP)
+	 */
+	// schedule_after_syscall |= (MMR_IRQ_STATUS & MMR_IRQ_MASK & IRQ_SCHEDULER);
 	if(schedule_after_syscall){
 		sched_run();
 		return sched_get_current_tcb();
@@ -211,7 +216,7 @@ int sys_writepipe(tcb_t *tcb, void *buf, size_t size, int cons_task, bool sync)
 	if(request != NULL){
 		/* Message request found! */
 		int req_addr = tl_get_addr(request);
-		if(req_addr == MMR_NI_CONFIG){
+		if(req_addr == MMR_DMNI_ADDRESS){
 			/* Local consumer */
 			if(cons_task & MEMPHIS_KERNEL_MSG){
 				/* Message directed to kernel. No TCB to write to */
@@ -277,7 +282,7 @@ int sys_writepipe(tcb_t *tcb, void *buf, size_t size, int cons_task, bool sync)
 				return -EAGAIN;
 			}
 
-			if(MMR_DMNI_SEND_ACTIVE){
+			if((MMR_DMNI_STATUS & DMNI_STATUS_SEND_ACTIVE)){
 				schedule_after_syscall = true;
 				return -EAGAIN;
 			}
@@ -312,7 +317,7 @@ int sys_writepipe(tcb_t *tcb, void *buf, size_t size, int cons_task, bool sync)
 	} else if(tcb_get_opipe(tcb) == NULL){
 		/* Pipe is free */
 		if(sync){
-			if(cons_addr == MMR_NI_CONFIG){
+			if(cons_addr == MMR_DMNI_ADDRESS){
 				/* Local consumer */
 				if(cons_task & MEMPHIS_KERNEL_MSG){
 					/* Message directed to kernel. No TCB to write to */
@@ -325,7 +330,7 @@ int sys_writepipe(tcb_t *tcb, void *buf, size_t size, int cons_task, bool sync)
 
 					/* Insert DATA_AV to the consumer TCB */
 					list_t *davs = tcb_get_davs(cons_tcb);
-					tl_t *dav = tl_emplace_back(davs, prod_task, MMR_NI_CONFIG);
+					tl_t *dav = tl_emplace_back(davs, prod_task, MMR_DMNI_ADDRESS);
 
 					if(dav == NULL){
 						puts("ERROR: could not allocate memory for DAV entry");
@@ -340,7 +345,7 @@ int sys_writepipe(tcb_t *tcb, void *buf, size_t size, int cons_task, bool sync)
 			} else {
 				/* Send DATA_AV to consumer PE */
 				tl_t dav;
-				tl_set(&dav, prod_task, MMR_NI_CONFIG);
+				tl_set(&dav, prod_task, MMR_DMNI_ADDRESS);
 				
 				tl_send_dav(&dav, cons_task, cons_addr);
 			}
@@ -462,7 +467,7 @@ int sys_readpipe(tcb_t *tcb, void *buf, size_t size, int prod_task, bool sync)
 		// printf("Readpipe: received DATA_AV from task %x with address %x\n", prod_task, prod_addr);
 	}
 
-	if(prod_addr == MMR_NI_CONFIG){
+	if(prod_addr == MMR_DMNI_ADDRESS){
 		/* Local producer */
 		if(prod_task & MEMPHIS_KERNEL_MSG){
 			// puts("Received DATA_AV from LOCAL Kernel!\n");
@@ -512,7 +517,7 @@ int sys_readpipe(tcb_t *tcb, void *buf, size_t size, int prod_task, bool sync)
 			if(opipe == NULL || opipe_get_cons_task(opipe) != cons_task){
 				/* Stores the request into the message request table */
 				list_t *msgreqs = tcb_get_msgreqs(prod_tcb);
-				tl_emplace_back(msgreqs, cons_task, MMR_NI_CONFIG);
+				tl_emplace_back(msgreqs, cons_task, MMR_DMNI_ADDRESS);
 			} else {
 				/* Message was found in pipe, writes to the consumer page address (local producer) */
 				buf = (void*)((unsigned)buf | (unsigned)tcb_get_offset(tcb));
@@ -550,7 +555,7 @@ int sys_readpipe(tcb_t *tcb, void *buf, size_t size, int prod_task, bool sync)
 
 		/* Send the message request through NoC */
 		tl_t msgreq;
-		tl_set(&msgreq, cons_task, MMR_NI_CONFIG);
+		tl_set(&msgreq, cons_task, MMR_DMNI_ADDRESS);
 
 		tl_send_msgreq(&msgreq, prod_task, prod_addr);
 		// puts("Sent request");
@@ -627,7 +632,7 @@ bool sys_kernel_writepipe(void *buf, size_t size, int cons_task, int cons_addr)
 	if(send_data_av){
 		/* Check if local consumer / migrated task */
 		tcb_t *cons_tcb = NULL;
-		if(cons_addr == MMR_NI_CONFIG){
+		if(cons_addr == MMR_DMNI_ADDRESS){
 			cons_tcb = tcb_find(cons_task);
 			if(cons_tcb == NULL){
 				tl_t *tl = tm_find(cons_task);
@@ -642,7 +647,7 @@ bool sys_kernel_writepipe(void *buf, size_t size, int cons_task, int cons_addr)
 		if(cons_tcb != NULL){
 			/* Insert the packet to TCB */
 			list_t *davs = tcb_get_davs(cons_tcb);
-			tl_emplace_back(davs, MEMPHIS_KERNEL_MSG | MMR_NI_CONFIG, MMR_NI_CONFIG);
+			tl_emplace_back(davs, MEMPHIS_KERNEL_MSG | MMR_DMNI_ADDRESS, MMR_DMNI_ADDRESS);
 
 			/* If the consumer task is waiting for a DATA_AV, release it */
 			sched_t *sched = tcb_get_sched(cons_tcb);
@@ -653,7 +658,7 @@ bool sys_kernel_writepipe(void *buf, size_t size, int cons_task, int cons_addr)
 		} else {
 			/* Send data available to the right processor */
 			tl_t dav;
-			tl_set(&dav, MEMPHIS_KERNEL_MSG | MMR_NI_CONFIG, MMR_NI_CONFIG);
+			tl_set(&dav, MEMPHIS_KERNEL_MSG | MMR_DMNI_ADDRESS, MMR_DMNI_ADDRESS);
 
 			tl_send_dav(&dav, cons_task, cons_addr);
 		}
@@ -664,14 +669,14 @@ bool sys_kernel_writepipe(void *buf, size_t size, int cons_task, int cons_addr)
 
 bool sys_release_peripheral()
 {
-	MMR_MEM_REG_PERIPHERALS = 1;
+	MMR_DMNI_REL_PERIPHERAL = 1;
 	// puts("Peripherals released\n");
 	return false;
 }
 
 int sys_get_location()
 {
-	return MMR_NI_CONFIG;
+	return MMR_DMNI_ADDRESS;
 }
 
 int sys_getpid(tcb_t *tcb)
@@ -691,12 +696,12 @@ int sys_br_send_all(tcb_t *tcb, uint32_t payload, uint8_t ksvc)
 	packet.src_id = prod_task;
 	packet.payload = payload;
 
-	if(!bcast_send(&packet, MMR_NI_CONFIG, BR_SVC_ALL)){
+	if(!bcast_send(&packet, MMR_DMNI_ADDRESS, BR_SVC_ALL)){
 		schedule_after_syscall = true;
 		return -EAGAIN;
 	}
 		
-	packet.src_addr = MMR_NI_CONFIG;
+	packet.src_addr = MMR_DMNI_ADDRESS;
 	schedule_after_syscall = isr_handle_broadcast(&packet);
 	return 0;
 }
@@ -713,8 +718,8 @@ int sys_br_send_tgt(tcb_t *tcb, uint32_t payload, uint16_t target, uint8_t ksvc)
 	packet.src_id = prod_task;
 	packet.payload = payload;
 
-	if(target == MMR_NI_CONFIG){
-		packet.src_addr = MMR_NI_CONFIG;
+	if(target == MMR_DMNI_ADDRESS){
+		packet.src_addr = MMR_DMNI_ADDRESS;
 		schedule_after_syscall = isr_handle_broadcast(&packet);
 		return 0;
 	}
@@ -741,19 +746,10 @@ int sys_mon_ptr(tcb_t *tcb, unsigned* table, enum MONITOR_TYPE type)
 
 	switch(type){
 		case MON_QOS:
-			MMR_MON_PTR_QOS = (unsigned)table;
+			MMR_DMNI_BRMON_QOS_PTR = (unsigned)table;
 			break;
 		case MON_PWR:
-			MMR_MON_PTR_PWR = (unsigned)table;
-			break;
-		case MON_2:
-			MMR_MON_PTR_2 = (unsigned)table;
-			break;
-		case MON_3:
-			MMR_MON_PTR_3 = (unsigned)table;
-			break;
-		case MON_4:
-			MMR_MON_PTR_4 = (unsigned)table;
+			MMR_DMNI_BRMON_PWR_PTR = (unsigned)table;
 			break;
 		default:
 			return -EINVAL;
@@ -811,7 +807,7 @@ int sys_write(tcb_t *tcb, int file, char *buf, int nbytes)
 		rv = write(file, buf, nbytes);
 	} else {
 		int id = tcb_get_id(tcb);
-		int addr = MMR_NI_CONFIG;
+		int addr = MMR_DMNI_ADDRESS;
 
 		printf("$$$_%dx%d_%d_%d_", addr >> 8, addr & 0xFF, id >> 8, id & 0xFF);
 		fflush(stdout);
@@ -849,11 +845,11 @@ int sys_close(int file)
 int sys_get_ctx(tcb_t *tcb, mctx_t *ctx)
 {
 	mctx_t *real_ptr = (mctx_t*)((unsigned)tcb_get_offset(tcb) | (unsigned)ctx);
-	real_ptr->PE_X_CNT = MMR_N_PE_X;
-	real_ptr->PE_Y_CNT = MMR_N_PE_Y;
-	real_ptr->PE_CNT = real_ptr->PE_X_CNT * real_ptr->PE_Y_CNT;
-	real_ptr->PE_SLOTS = MMR_MAX_LOCAL_TASKS;
-	real_ptr->MC_SLOTS = real_ptr->PE_SLOTS * real_ptr->PE_CNT;
+	real_ptr->PE_X_CNT 	= MMR_DMNI_MANYCORE_SIZE >> 16;
+	real_ptr->PE_Y_CNT 	= MMR_DMNI_MANYCORE_SIZE & 0xFFFF;
+	real_ptr->PE_CNT	= real_ptr->PE_X_CNT * real_ptr->PE_Y_CNT;
+	real_ptr->PE_SLOTS 	= MMR_DMNI_MAX_LOCAL_TASKS;
+	real_ptr->MC_SLOTS 	= real_ptr->PE_SLOTS * real_ptr->PE_CNT;
 
 	return 0;
 }
@@ -880,10 +876,14 @@ int sys_halt(tl_t *tl)
 	}
 
 	/* Disable scheduler */
-	MMR_IRQ_MASK &= ~IRQ_SCHEDULER;
+	/**
+	 * @todo
+	 * Create a function to disable MTI in MIE register
+	 */
+	// MMR_IRQ_MASK &= ~IRQ_SCHEDULER;
 	
 	/* Inform the mapper that this PE is ready to halt */
-	int pe_halted[] = {PE_HALTED, MMR_NI_CONFIG};
+	int pe_halted[] = {PE_HALTED, MMR_DMNI_ADDRESS};
 	sys_kernel_writepipe(
 		pe_halted, 
 		sizeof(pe_halted), 
@@ -899,6 +899,6 @@ int sys_end_simulation(tcb_t *tcb)
 	if(tcb_get_id(tcb) >> 8 != 0)
 		return -EACCES;
 
-	MMR_END_SIM = 1;
+	MMR_DBG_HALT = 1;
 	return 0;
 }

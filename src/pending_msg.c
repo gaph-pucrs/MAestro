@@ -38,7 +38,7 @@ int pmsg_emplace_back(void *buf, size_t size, int cons_task)
 		opipe, 
 		buf, 
 		size, 
-		MEMPHIS_KERNEL_MSG | MMR_NI_CONFIG, 
+		MEMPHIS_KERNEL_MSG | MMR_DMNI_ADDRESS, 
 		cons_task
 	);
 

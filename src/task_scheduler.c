@@ -51,6 +51,10 @@ void sched_init()
 {
 	list_init(&_scheds);
 
+	/**
+	 * @todo
+	 * Create a function to read 64-bit timer
+	 */
 	last_idle_time = MMR_RTC_MTIME;
 }
 
@@ -113,6 +117,10 @@ tcb_t *sched_get_current_tcb()
 
 void sched_update_slack_time()
 {
+	/**
+	 * @todo
+	 * Create a function to read 64-bit timer
+	 */
 	total_slack_time += MMR_RTC_MTIME - last_idle_time;
 }
 
@@ -138,8 +146,12 @@ void sched_release_wait(sched_t *sched)
 
 void sched_update_idle_time()
 {
+	/**
+	 * @todo
+	 * Create a function to read 64-bit timer
+	 */
 	last_idle_time = MMR_RTC_MTIME;
-	MMR_SCHEDULING_REPORT = REPORT_IDLE;
+	MMR_DBG_SCHED_REPORT = REPORT_IDLE;
 }
 
 void sched_set_wait_msgreq(sched_t *sched)
@@ -410,6 +422,10 @@ sched_t *_sched_lst(unsigned current_time)
 
 		if(scheduled->deadline != SCHED_NO_DEADLINE){
 			/* Sets the task running start time to the current time */
+			/**
+			 * @todo
+			 * Create a function to read 64-bit timer
+			 */
 			scheduled->running_start_time = MMR_RTC_MTIME;
 		}
 
@@ -418,6 +434,10 @@ sched_t *_sched_lst(unsigned current_time)
 		_sched_idle_slice_time(current_time);
 	}
 
+	/**
+	 * @todo
+	 * Create a function to read 64-bit timer
+	 */
 	instant_overhead = MMR_RTC_MTIME - instant_overhead;
 	schedule_overhead = (schedule_overhead + instant_overhead) >> 1;
 
@@ -427,15 +447,23 @@ sched_t *_sched_lst(unsigned current_time)
 void sched_run()
 {
 	// puts("Scheduler called!");
+	/**
+	 * @todo
+	 * Create a function to read 64-bit timer
+	 */
 	unsigned scheduler_call_time = MMR_RTC_MTIME;
 
-	MMR_SCHEDULING_REPORT = REPORT_SCHEDULER;
+	MMR_DBG_SCHED_REPORT = REPORT_SCHEDULER;
 
 	sched_t *sched = _sched_lst(scheduler_call_time);
 	
 	if(sched != NULL){
 		current = sched->tcb;
 		sched_report(tcb_get_id(current));
+		/**
+		 * @todo
+		 * Create a function to update the 64-bit timer
+		*/
 		MMR_RTC_MTIMECMP = MMR_RTC_MTIME + time_slice;
 	} else {
 		current = NULL;
@@ -445,6 +473,10 @@ void sched_run()
 
 void sched_real_time_task(sched_t *sched, unsigned period, int deadline, unsigned execution_time)
 {
+	/**
+	 * @todo
+	 * Create a function to read 64-bit timer
+	 */
 	unsigned current_time = MMR_RTC_MTIME;
 
 	sched->period = period;
@@ -484,10 +516,10 @@ void sched_set_waiting_msg(sched_t *sched, sched_wait_t waiting_msg)
 
 void sched_report_interruption()
 {
-	MMR_SCHEDULING_REPORT = REPORT_INTERRUPTION;
+	MMR_DBG_SCHED_REPORT = REPORT_INTERRUPTION;
 }
 
 void sched_report(int id)
 {
-	MMR_SCHEDULING_REPORT = id;
+	MMR_DBG_SCHED_REPORT = id;
 }

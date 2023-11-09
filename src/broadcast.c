@@ -22,30 +22,30 @@
 
 bool bcast_send(bcast_t *packet, int16_t tgt_addr, uint8_t service)
 {
-	if(MMR_BR_LOCAL_BUSY)
+	if((MMR_DMNI_STATUS & DMNI_STATUS_LOCAL_BUSY))
 		return false;
 
-	MMR_BR_SERVICE = service & 0x7;
-	MMR_BR_KSVC = packet->service;
-	MMR_BR_PRODUCER = packet->src_id;
-	MMR_BR_TARGET = tgt_addr;
-	MMR_BR_PAYLOAD = packet->payload;
+	MMR_DMNI_BRLITE_SERVICE = service & 0x3;
+	MMR_DMNI_BRLITE_KSVC = packet->service;
+	MMR_DMNI_BRLITE_PRODUCER = packet->src_id;
+	MMR_DMNI_BRLITE_TARGET = tgt_addr;
+	MMR_DMNI_BRLITE_PAYLOAD = packet->payload;
 	
-	MMR_BR_START = 1;
+	MMR_DMNI_BRLITE_START = 1;
 	return true;
 }
 
 void bcast_read(bcast_t *packet)
 {
-	packet->service = MMR_BR_READ_KSVC;
+	packet->service = MMR_DMNI_BRSVC_KSVC;
 
-	uint32_t producer = MMR_BR_READ_PRODUCER;
+	uint32_t producer = MMR_DMNI_BRSVC_PRODUCER;
 	packet->src_addr = producer >> 16;
 	packet->src_id = producer & 0xFFFF;
 	
-	packet->payload = MMR_BR_READ_PAYLOAD;
+	packet->payload = MMR_DMNI_BRSVC_PAYLOAD;
 
-	MMR_BR_POP = 1;
+	MMR_DMNI_BRSVC_POP = 1;
 }
 
 void bcast_fake_packet(bcast_t *bcast_packet, packet_t *packet)
@@ -58,11 +58,11 @@ void bcast_fake_packet(bcast_t *bcast_packet, packet_t *packet)
 	switch(packet->service){
 		case DATA_AV:
 			packet->producer_task = bcast_convert_id(bcast_packet->src_id, addr_field);
-			packet->consumer_task = bcast_convert_id(id_field, MMR_NI_CONFIG);
+			packet->consumer_task = bcast_convert_id(id_field, MMR_DMNI_ADDRESS);
 			packet->requesting_processor = addr_field;
 			break;
 		case MESSAGE_REQUEST:
-			packet->producer_task = bcast_convert_id(id_field, MMR_NI_CONFIG);
+			packet->producer_task = bcast_convert_id(id_field, MMR_DMNI_ADDRESS);
 			packet->consumer_task = bcast_convert_id(bcast_packet->src_id, addr_field);
 			packet->requesting_processor = addr_field;
 			break;

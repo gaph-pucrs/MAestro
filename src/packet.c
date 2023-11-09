@@ -67,7 +67,7 @@ void pkt_set_message_delivery(packet_t *packet, int consumer_addr, int producer_
 	packet->producer_task = producer_task;
 	packet->consumer_task = consumer_task;
 	packet->msg_length = size;
-	packet->insert_request = MMR_NI_CONFIG;
+	packet->insert_request = MMR_DMNI_ADDRESS;
 }
 
 void pkt_set_migration_pipe(packet_t *packet, int addr, int producer_task, int consumer_task, int size)
@@ -181,6 +181,6 @@ void pkt_set_dmni_info(packet_t *packet, size_t payload_size)
 {
 	packet->payload_size = (PKT_SIZE - 2) + payload_size;
 	packet->transaction = 0;
-	packet->source_PE = MMR_NI_CONFIG;
+	packet->source_PE = MMR_DMNI_ADDRESS;
 	packet->timestamp = MMR_RTC_MTIME;
 }

@@ -66,7 +66,7 @@ void tcb_alloc(
 )
 {
 	memset(tcb->registers, 0, HAL_MAX_REGISTERS * sizeof(int));
-	tcb->registers[HAL_REG_SP] = MMR_PAGE_SIZE - (sizeof(int) << 1);
+	tcb->registers[HAL_REG_SP] = MMR_DMNI_DMEM_PAGE_SIZE - (sizeof(int) << 1);
 	tcb->pc = entry_point;
 
 	tcb->page = page_acquire();
@@ -158,7 +158,7 @@ void tcb_remove(tcb_t *tcb)
 	if(entry != NULL)
 		list_remove(&_tcbs, entry);
 
-	MMR_TASK_TERMINATED = tcb->id;
+	MMR_DBG_TASK_TERMINATED = tcb->id;
 
 	free(tcb);
 }
