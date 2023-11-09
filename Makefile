@@ -17,7 +17,7 @@ INCMEMPHIS = $(LIBMEMPHISDIR)/include
 INCMUTILS = $(LIBUTILSDIR)/include
 
 CFLAGS  = -march=rv32im -mabi=ilp32 -Os -fdata-sections -ffunction-sections -flto -Wall -std=c11 -I$(INCDIR) -I$(INCMEMPHIS) -I$(INCMUTILS) -I$(HALDIR)
-LDFLAGS = --specs=nano.specs -march=rv32im -mabi=ilp32 -nostartfiles -Wl,--section-start=".init"=0,--gc-sections,-flto -L../libmutils -lmutils
+LDFLAGS = --specs=nano.specs -march=rv32im -mabi=ilp32 -nostartfiles -Wl,--section-start=".init"=0,--section-start=".rodata=01000000",--gc-sections,-flto -L../libmutils -lmutils
 
 CCSRC = $(wildcard $(SRCDIR)/*.c) $(wildcard $(HALDIR)/*.c)
 CCOBJ = $(patsubst %.c, %.o, $(CCSRC))
@@ -25,11 +25,15 @@ CCOBJ = $(patsubst %.c, %.o, $(CCSRC))
 ASSRC = $(wildcard $(HALDIR)/*.S)
 ASOBJ = $(patsubst %.S,%.o, $(ASSRC))
 
-all: $(TARGET).bin $(TARGET).lst
+all: i$(TARGET).bin d$(TARGET).bin $(TARGET).lst
 
-$(TARGET).bin: $(TARGET).elf
+d$(TARGET).bin: $(TARGET).elf
 	@printf "${RED}Generating %s...${NC}\n" "$@"
-	@$(OBJCOPY) $< $@ -O binary
+	@$(OBJCOPY) $< $@ -O binary -j .rodata -j .data -j .sdata
+
+i$(TARGET).bin: $(TARGET).elf
+	@printf "${RED}Generating %s...${NC}\n" "$@"
+	@$(OBJCOPY) $< $@ -O binary -j .init -j .text
 
 $(TARGET).elf: $(CCOBJ) $(ASOBJ)
 	@printf "${RED}Linking %s...${NC}\n" "$@"
@@ -58,7 +62,6 @@ clean:
 	@rm -rf *.bin
 	@rm -rf *.map
 	@rm -rf *.lst
-	@rm -rf *.txt
 	@rm -rf *.elf
 
 .PHONY: clean
