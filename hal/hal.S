@@ -15,9 +15,9 @@
 .equ INTR_MASK,  0x80000000
 .equ ECALL_MASK, 0x00000008
 
-.equ PLIC_ADDR, 0x40000000
-.equ MMR_ADDR,  0x40200000
-.equ RTC_ADDR,  0x20000000
+.equ RTC_ADDR,  0x02000000
+.equ PLIC_ADDR, 0x04000000
+.equ DMNI_ADDR, 0x08000000
 .equ MAX_REGISTERS, 30
 .equ PC_ADDR, MAX_REGISTERS*4
 .equ PAGE_ADDR, (MAX_REGISTERS+1)*4
@@ -53,8 +53,10 @@ _start:
 	la		t1,vector_entry		# Load the vector_entry address to t0
 	csrw	mtvec,t1			# Write vector_entry address to mtvec
 								# Last bit is 0, means DIRECT mode
-	li		t2, MMR_ADDR	 	# HW Address base
-	lw		sp, 0(t2)			# Stack to top
+	li		t2, DMNI_ADDR
+	lw		sp, 0x20(t2)		# Stack to top
+	li		t4, 0x01000000
+	or		sp, sp, t4			# Stack should be in data memory
 	
 	addi 	sp, sp, -1
 	csrw	mvmds, sp
