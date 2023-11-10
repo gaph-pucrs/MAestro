@@ -40,8 +40,8 @@ _start:
 	# Clear pending interrupts
 	csrw	mip, zero
 
-	# Enable MEI ant MTI when unmasked (if MIE=1)
-	li		t0,  0x80
+	# Enable MEI and when unmasked (if MIE=1)
+	li		t0,  0x800
 	csrw	mie, t0
 
 	.option push
@@ -53,37 +53,52 @@ _start:
 	la		t1,vector_entry		# Load the vector_entry address to t0
 	csrw	mtvec,t1			# Write vector_entry address to mtvec
 								# Last bit is 0, means DIRECT mode
+
+	# Load data memory size to sp
 	li		t2, DMNI_ADDR
-	lw		sp, 0x20(t2)		# Stack to top
-	li		t4, 0x01000000
-	or		sp, sp, t4			# Stack should be in data memory
-	
+	lw		sp, 0x20(t2)
+
+	# Configure virtual memory data size mask
 	addi 	sp, sp, -1
 	csrw	mvmds, sp
-	csrw	mvmis, sp
 	addi	sp, sp, 1
+
+	# Set stack to top of data memory
+	li		t4, 0x01000000
+	or		sp, sp, t4
+	
+	# Load instruction memory size
+	lw		t5, 0x1C(t2)
+	addi 	t5, t5, -1
+	csrw	mvmis, t5
+
+	# Enable XOSVM
 	li		t3, 1
 	csrw	mvmctl, t3
 
-	# newlib related
+	# Clear the BSS
 	la a0, _edata
 	la a2, _end
 	sub a2, a2, a0
 	li a1, 0
 	call memset
 
+	# Initialize newlib
 	la a0, __libc_fini_array
 	call atexit
 	call __libc_init_array
 
+	# Clear argc, argv, envp
 	li a0, 0
 	li a1, 0
 	li a2, 0
 
 	jal		main
 
-	csrw	mscratch, sp	# Save sp to mscratch
+	# Save kernel sp to mscratch
+	csrw	mscratch, sp
 
+	# Globally enable interrupts
 	li		t0, 0x8
 	csrs	mstatus, t0
 
