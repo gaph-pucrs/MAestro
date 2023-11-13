@@ -36,5 +36,7 @@ int main()
 	llm_init();
 	pkt_init();
 
+	MMR_PLIC_IE = PLIC_IE_DMNI;
+
 	return 0;
 }
