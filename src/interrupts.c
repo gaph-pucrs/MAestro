@@ -73,7 +73,7 @@ tcb_t *isr_isr(unsigned status)
 				while(1);
 			}
 
-			dmni_receive(packet, PKT_SIZE);
+			dmni_receive(((void*)packet) + 8, PKT_SIZE - 2);
 
 			if(
 				(MMR_DMNI_STATUS & DMNI_STATUS_SEND_ACTIVE) && 
@@ -603,7 +603,10 @@ bool isr_task_allocation(
 	);
 
 	/* Obtain the program code */
-	dmni_receive(tcb_get_offset(tcb), (text_size + data_size) >> 2);
+	dmni_receive(tcb_get_offset(tcb), text_size >> 2);
+
+	/* Obtain program data */
+	dmni_receive((void*)(0x01000000 | (unsigned)(tcb_get_offset(tcb))), data_size >> 2);
 
 	// printf("Text size: %x\n", text_size);
 	// printf("Mapper task: %d\n", mapper_task);
