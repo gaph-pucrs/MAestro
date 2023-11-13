@@ -75,13 +75,13 @@ int ipipe_receive(ipipe_t *ipipe, void *offset, size_t size)
 		if(tmpbuf == NULL)
 			return -1;
 
-		dmni_read(tmpbuf, align_size >> 2);
+		dmni_receive(tmpbuf, align_size >> 2);
 
 		memcpy(real_ptr, tmpbuf, size);
 		free(tmpbuf);
 	} else {
 		/* Obtain message from DMNI */
-		dmni_read(real_ptr, align_size >> 2);
+		dmni_receive(real_ptr, align_size >> 2);
 	}
 	
 	ipipe->size = size;

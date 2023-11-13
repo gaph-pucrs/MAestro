@@ -103,7 +103,7 @@ int opipe_receive(opipe_t *opipe, size_t size, int cons_task)
 	opipe->consumer_task = cons_task;
 	opipe->size = size;
 
-	dmni_read(opipe->buf, align_size >> 2);
+	dmni_receive(opipe->buf, align_size >> 2);
 
 	return size;
 }

@@ -17,10 +17,10 @@
 
 #include "mmr.h"
 
-void dmni_read(void *payload_address, size_t payload_size)
+void dmni_receive(void *payload_address, size_t payload_size)
 {
 	MMR_DMNI_HERMES_SIZE = (unsigned int)payload_size;
-	MMR_DMNI_HERMES_OPERATION = DMNI_OPERATION_WRITE;
+	MMR_DMNI_HERMES_OPERATION = DMNI_OPERATION_RECEIVE;
 	MMR_DMNI_HERMES_ADDRESS = (unsigned int)payload_address;
 	MMR_DMNI_HERMES_START = 1;
 	while((MMR_DMNI_STATUS & DMNI_STATUS_RECV_ACTIVE));
@@ -47,7 +47,7 @@ void dmni_send(packet_t *packet, void *payload, size_t size, bool should_free)
 	MMR_DMNI_HERMES_SIZE_2 = size;
 	MMR_DMNI_HERMES_ADDRESS_2 = (unsigned)outbound;
 
-	MMR_DMNI_HERMES_OPERATION = DMNI_OPERATION_READ;
+	MMR_DMNI_HERMES_OPERATION = DMNI_OPERATION_SEND;
 
 	pkt_set_dmni_info(packet, size);
 
@@ -73,7 +73,7 @@ void dmni_send_raw(unsigned *packet, size_t size)
 	MMR_DMNI_HERMES_SIZE_2 = 0;
 	MMR_DMNI_HERMES_ADDRESS_2 = 0;
 
-	MMR_DMNI_HERMES_OPERATION = DMNI_OPERATION_READ;
+	MMR_DMNI_HERMES_OPERATION = DMNI_OPERATION_SEND;
 
 	MMR_DMNI_HERMES_START = 1;
 
@@ -85,7 +85,7 @@ void dmni_drop_payload(unsigned payload_size)
 {
 	// printf("Dropping payload - Size = %u\n", payload_size);
 	MMR_DMNI_HERMES_SIZE = payload_size;
-	MMR_DMNI_HERMES_OPERATION = DMNI_OPERATION_READ;
+	MMR_DMNI_HERMES_OPERATION = DMNI_OPERATION_RECEIVE;
 	MMR_DMNI_HERMES_ADDRESS = 0;
 	MMR_DMNI_HERMES_START = 1;
 	while((MMR_DMNI_STATUS & DMNI_STATUS_RECV_ACTIVE));

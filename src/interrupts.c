@@ -73,7 +73,7 @@ tcb_t *isr_isr(unsigned status)
 				while(1);
 			}
 
-			dmni_read(packet, PKT_SIZE);
+			dmni_receive(packet, PKT_SIZE);
 
 			if(
 				(MMR_DMNI_STATUS & DMNI_STATUS_SEND_ACTIVE) && 
@@ -431,7 +431,7 @@ bool isr_message_delivery(int cons_task, int prod_task, int prod_addr, size_t si
 		/* This message was directed to kernel */
 		size_t align_size = (size + 3) & ~3;
 		void *rcvmsg = malloc(align_size);
-		dmni_read(rcvmsg, align_size >> 2);
+		dmni_receive(rcvmsg, align_size >> 2);
 
 		/* Process the message like a syscall triggered from another PE */
 		int ret = sys_kernel_syscall(rcvmsg, align_size >> 2);
@@ -603,7 +603,7 @@ bool isr_task_allocation(
 	);
 
 	/* Obtain the program code */
-	dmni_read(tcb_get_offset(tcb), (text_size + data_size) >> 2);
+	dmni_receive(tcb_get_offset(tcb), (text_size + data_size) >> 2);
 
 	// printf("Text size: %x\n", text_size);
 	// printf("Mapper task: %d\n", mapper_task);
@@ -727,7 +727,7 @@ bool isr_migration_code(int id, size_t text_size, int mapper_task, int mapper_ad
 
 	/* Obtain the program code */
 	void *offset = tcb_get_offset(tcb);
-	dmni_read(offset, text_size >> 2);
+	dmni_receive(offset, text_size >> 2);
 
 	// printf("Received MIGRATION_CODE from task id %d with size %d to store at offset %p\n", id, text_size, tcb_get_offset(tcb));
 
@@ -754,7 +754,7 @@ bool isr_migration_tcb(int id, void *pc, unsigned received)
 		ipipe_set_read(ipipe, received);
 	}
 
-	dmni_read(tcb_get_regs(tcb), HAL_MAX_REGISTERS);
+	dmni_receive(tcb_get_regs(tcb), HAL_MAX_REGISTERS);
 
 	// printf("Received MIGRATION_TCB from task id %d\n", id);
 
@@ -821,7 +821,7 @@ bool isr_migration_tl(int id, size_t size, unsigned service)
 		while(true);
 	}
 
-	dmni_read(vec, (size*sizeof(tl_t)) >> 2);
+	dmni_receive(vec, (size*sizeof(tl_t)) >> 2);
 	
 	list_t *list = NULL;
 
@@ -891,7 +891,7 @@ bool isr_migration_stack(int id, size_t size)
 		return false;
 	}
 
-	dmni_read(
+	dmni_receive(
 		tcb_get_offset(tcb) + MMR_DMNI_DMEM_PAGE_SIZE - size, 
 		size >> 2
 	);
@@ -918,7 +918,7 @@ bool isr_migration_heap(int id, size_t heap_size)
 	/* Align */
 	heap_size = (heap_size + 3) & ~3;
 
-	dmni_read(
+	dmni_receive(
 		tcb_get_offset(tcb) + (unsigned)heap_start, 
 		heap_size >> 2
 	);
@@ -947,7 +947,7 @@ bool isr_migration_data_bss(int id, size_t data_size, size_t bss_size)
 	/* Align */
 	total_size = (total_size + 3) & ~3;
 
-	dmni_read(
+	dmni_receive(
 		tcb_get_offset(tcb) + tcb_get_text_size(tcb), 
 		total_size >> 2
 	);
@@ -972,7 +972,7 @@ bool isr_migration_app(int id, size_t task_cnt)
 		while(true);
 	}
 
-	dmni_read(tmploc, task_cnt);
+	dmni_receive(tmploc, task_cnt);
 
 	size_t current_size = app_get_task_cnt(app);
 	if(current_size == 0){

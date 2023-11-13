@@ -23,7 +23,7 @@
  * @param payload_address	Address where the payload will be saved
  * @param payload_size		Number of flits to copy
  */
-void dmni_read(void *payload_address, size_t payload_size);
+void dmni_receive(void *payload_address, size_t payload_size);
 
 /**
  * @brief Abstracts the DMNI programming for writing data to NoC and copy from memory.
