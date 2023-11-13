@@ -66,7 +66,8 @@ void tcb_alloc(
 )
 {
 	memset(tcb->registers, 0, HAL_MAX_REGISTERS * sizeof(int));
-	tcb->registers[HAL_REG_SP] = MMR_DMNI_DMEM_PAGE_SIZE - (sizeof(int) << 1);
+
+	tcb->registers[HAL_REG_SP] = 0x01000000 | (MMR_DMNI_DMEM_PAGE_SIZE - (sizeof(int) << 1));
 	tcb->pc = entry_point;
 
 	tcb->page = page_acquire();
@@ -82,7 +83,7 @@ void tcb_alloc(
 	tcb->bss_size = bss_size;
 	tcb->proc_to_migrate = -1;
 	
-	tcb->heap_end = (void*)(text_size + data_size + bss_size);
+	tcb->heap_end = (void*)(0x01000000 + data_size + bss_size);
 
 	tl_set(&(tcb->mapper), mapper_task, mapper_addr);
 	list_init(&(tcb->message_requests));

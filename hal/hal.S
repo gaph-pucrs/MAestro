@@ -27,6 +27,8 @@
 .equ mvmio,  0x7C2
 .equ mvmis,  0x7C3
 .equ mvmctl, 0x7C4
+.equ mvmdm,  0x7C5
+.equ mvmim,  0x7C6
 
 .section .init
 .align 4
@@ -75,6 +77,11 @@ _start:
 	# Enable XOSVM
 	li		t3, 1
 	csrw	mvmctl, t3
+
+	# Set XOSVM allowed mask
+	csrw	mvmim, zero
+	li		t6, 0x01000000
+	csrw 	mvmdm, t6
 
 	# Clear the BSS
 	la a0, _edata
