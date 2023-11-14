@@ -265,6 +265,10 @@ restore_minimum:
 	lw		t0, PC_ADDR(a0)
 	csrw	mepc, t0
 
+	/* MPPRIV = user, MPIE = en */
+	li		t1, 0x80
+	csrw	mstatus, t1
+
 	lw		 ra,  0(a0)
 	lw		 sp,  4(a0)
 	lw		 gp,  8(a0)
@@ -287,7 +291,6 @@ restore_minimum:
 
 	lw		 a0, 32(a0)
 
-	csrw	mstatus, zero
 	mret
 
 ecall_handler:
@@ -338,6 +341,10 @@ should_restore_complete:
 	csrw	mvmdo, t1
 	csrw	mvmio, t1
 
+	/* MPPRIV = user, MPIE = en */
+	li		t2, 0x80
+	csrw	mstatus, t2
+
 	lw		 ra,  0(a0)
 	lw		 sp,  4(a0)
 	lw		 gp,  8(a0)
@@ -371,7 +378,6 @@ should_restore_complete:
 
 	lw		 a0, 32(a0)
 	
-	csrw	mstatus, zero
 	mret
 
 ecall_return:
@@ -380,6 +386,10 @@ ecall_return:
 	# Callee registers are taken care by the ABI (except s0)
 	lw		 t0, PC_ADDR(a0)
 	csrw	 mepc, t0			# Load task PC
+
+	/* MPPRIV = user, MPIE = en */
+	li		t1, 0x80
+	csrw	mstatus, t1
 
 	lw		 ra,  0(s0)
 	lw		 t0, 12(s0)
@@ -403,5 +413,4 @@ ecall_return:
 	addi	 sp, sp, 8	# Pop stack
 	csrrw	 sp, mscratch, sp	# Swap back kernel sp with task sp, faster than loading from memory
 
-	csrw	mstatus, zero
 	mret
