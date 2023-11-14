@@ -105,6 +105,7 @@ _start:
 	# Save kernel sp to mscratch
 	csrw	mscratch, sp
 
+idle:
 	# Globally enable interrupts
 	li		t0, 0x8
 	csrs	mstatus, t0
@@ -235,7 +236,7 @@ isr_entry:
 
 	# If the idle task was scheduled, no need to restore the context
 	bnez	a0, should_restore_isr
-	j 		wfi_loop
+	j 		idle
 should_restore_isr:
 	# Else if the same task that was interrupted is scheduled, restore only needed
 	beq		a0, s0, restore_minimum
@@ -329,7 +330,7 @@ restore_complete:
 
 	# If the idle task was scheduled, no need to restore the context
 	bnez	 a0, should_restore_complete
-	j 		 wfi_loop
+	j 		 idle
 should_restore_complete:
 	# Otherwise, restore context of scheduled task
 	# We don't know if the scheduled task stopped on a call or intr, so restore everything
