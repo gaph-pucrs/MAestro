@@ -177,6 +177,12 @@ bool isr_handle_broadcast(bcast_t *packet)
 				addr_field, 
 				bcast_convert_id(task_field, MMR_NI_CONFIG)
 			);
+		case MESSAGE_NACK:
+			return isr_message_nack(
+				bcast_convert_id(packet->src_id, addr_field), 
+				addr_field, 
+				bcast_convert_id(task_field, MMR_NI_CONFIG)
+			);
 		default:
 			printf(
 				"ERROR: unknown broadcast %x at time %d\n", 
@@ -487,15 +493,22 @@ bool isr_message_delivery(int cons_task, int prod_task, int prod_addr, size_t si
 			// printf("Packet payload size = %u\n", pkt_payload_size);
 			unsigned flits_to_drop = (pkt_payload_size-11);
 			dmni_drop_payload(flits_to_drop);
+			return false;
 		}
 		// printf("Message at virtual address %p\n", ipipe->buf);
 
+		/* Effectively read payload from DMNI */
 		int result = ipipe_receive(ipipe, tcb_get_offset(cons_tcb), size);
 		if(result != size){
 			puts("ERROR: buffer failure on message delivery");
 			// printf("Packet payload size = %u\n", pkt_payload_size);
 			unsigned flits_to_drop = (pkt_payload_size-11);
 			dmni_drop_payload(flits_to_drop);
+
+			tl_t nack;
+			tl_set(&nack, cons_task, MMR_NI_CONFIG);
+			tl_send_nack(&nack, prod_task, prod_addr);
+			return false;
 		}
 		// puts("Message read from DMNI");
 
@@ -503,9 +516,20 @@ bool isr_message_delivery(int cons_task, int prod_task, int prod_addr, size_t si
 		/* Ignore ACK if message originated from Peripheral or Kernel */
 		bool send_ack = !(prod_task & (MEMPHIS_FORCE_PORT | MEMPHIS_KERNEL_MSG));
 		if (send_ack) {
-			/* Just a temporary structure to send ACK */
-			tl_t ack;
+			// static int msg_cntr = 0;
+			// msg_cntr++;
 
+			// if (msg_cntr % 5 == 0) {
+			// 	/* NACK tester: every 5th message that needs ACK will NACK */
+			// 	tl_t nack;
+			// 	tl_set(&nack, cons_task, MMR_NI_CONFIG);
+			// 	tl_send_nack(&nack, prod_task, prod_addr);
+
+			// 	/* Return early and do not allow the consumer to run */
+			// 	return false;
+			// }
+			
+			tl_t ack;
 			tl_set(&ack, cons_task, MMR_NI_CONFIG);
 			tl_send_ack(&ack, prod_task, prod_addr);
 		}
@@ -1131,4 +1155,49 @@ bool isr_message_ack(int cons_task, int cons_addr, int prod_task)
 	}
 	
 	return sched_is_idle();
+}
+
+bool isr_message_nack(int cons_task, int cons_addr, int prod_task)
+{
+	printf("Received message NACK from task %d to task %d\n", cons_task, prod_task);
+
+	/* Get the producer task */
+	tcb_t *prod_tcb = tcb_find(prod_task);
+
+	if(prod_tcb == NULL){
+		/* Task is not here. Probably migrated. */
+		tl_t *mig = tm_find(prod_task);
+
+		if(mig == NULL){
+			puts("ERROR: Task migrated not found in db.");
+			return false;
+		}
+
+		int migrated_addr = tl_get_addr(mig);
+		// printf("Forwarding ACK to address %d\n", migrated_addr);
+
+		/* Forward the message ack to the migrated processor */
+		tl_t nack;
+		tl_set(&nack, cons_task, cons_addr);
+		tl_send_nack(&nack, prod_task, migrated_addr);
+
+		return false; /* No change was made to schedule again */
+	}
+
+	// puts("Producer found!\n");
+		
+	/* Task found. Now search for message. */
+	opipe_t *opipe = tcb_get_opipe(prod_tcb);
+
+	if(opipe == NULL || opipe_get_cons_task(opipe) != cons_task){	/* No message in producer's pipe to the consumer task */
+		/**
+		 * @todo Handle error
+		*/
+		return false;
+	}
+	
+	/* NACK signalizes to retransmit the pipe */
+	opipe_send(opipe, prod_task, cons_addr, false);
+	
+	return false;
 }

@@ -101,3 +101,12 @@ void tl_set(tl_t *tl, int task, int addr);
  * @param prod_addr Address of the producer task
  */
 void tl_send_ack(tl_t *ack, int prod_task, int prod_addr);
+
+/**
+ * @brief Sends a message NACK
+ * 
+ * @param ack Pointer to the message ack task location
+ * @param prod_task ID of the producer task
+ * @param prod_addr Address of the producer task
+ */
+void tl_send_nack(tl_t *ack, int prod_task, int prod_addr);

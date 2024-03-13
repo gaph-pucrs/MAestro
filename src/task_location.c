@@ -141,3 +141,13 @@ void tl_send_ack(tl_t *ack, int prod_task, int prod_addr)
 	packet.payload = prod_task | (ack->addr << 16);
 	while(!bcast_send(&packet, prod_addr, BR_SVC_TGT));
 }
+
+void tl_send_nack(tl_t *ack, int prod_task, int prod_addr)
+{
+	bcast_t packet;
+
+	packet.service = MESSAGE_NACK;
+	packet.src_id = ack->task;
+	packet.payload = prod_task | (ack->addr << 16);
+	while(!bcast_send(&packet, prod_addr, BR_SVC_TGT));
+}
