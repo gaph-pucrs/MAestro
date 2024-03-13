@@ -111,9 +111,9 @@ bool isr_data_available(int cons_task, int prod_task, int prod_addr);
  */
 bool isr_task_allocation(
 	int id, 
-	unsigned length, 
-	unsigned data_len, 
-	unsigned bss_len, 
+	size_t text_size, 
+	size_t data_size, 
+	size_t bss_size, 
 	void *entry_point, 
 	int mapper_task, 
 	int mapper_addr
