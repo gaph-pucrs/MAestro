@@ -131,3 +131,13 @@ void tl_set(tl_t *tl, int task, int addr)
 	tl->task = task;
 	tl->addr = addr;
 }
+
+void tl_send_ack(tl_t *ack, int prod_task, int prod_addr)
+{
+	bcast_t packet;
+
+	packet.service = MESSAGE_ACK;
+	packet.src_id = ack->task;
+	packet.payload = prod_task | (ack->addr << 16);
+	while(!bcast_send(&packet, prod_addr, BR_SVC_TGT));
+}

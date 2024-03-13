@@ -56,7 +56,7 @@ void opipe_pop(opipe_t *opipe)
     opipe->buf = NULL;
 }
 
-void opipe_send(opipe_t *opipe, int producer_task, int consumer_addr)
+void opipe_send(opipe_t *opipe, int producer_task, int consumer_addr, bool free_after)
 {
 	packet_t *packet = pkt_slot_get();
 
@@ -70,7 +70,7 @@ void opipe_send(opipe_t *opipe, int producer_task, int consumer_addr)
 
 	size_t align_size = (opipe->size + 3) & ~3;
 
-	dmni_send(packet, opipe->buf, align_size >> 2, true);
+	dmni_send(packet, opipe->buf, align_size >> 2, free_after);
 }
 
 int opipe_get_cons_task(opipe_t *opipe)

@@ -297,14 +297,20 @@ int sys_writepipe(tcb_t *tcb, void *buf, size_t size, int cons_task, bool sync)
 				return -ENOMEM;
 			}
 
+			/* Ack is only required in task-to-task communication        						 */
+			/* Therefore, the pipe can be freed automatically after sent to peripheral or kernel */
+			bool free_after_send = (cons_task & (MEMPHIS_FORCE_PORT | MEMPHIS_KERNEL_MSG));
+
 			/* Send through NoC */
 			opipe_send(
 				opipe, 
 				prod_task, 
-				req_addr
+				req_addr,
+				free_after_send
 			);
 
-			tcb_destroy_opipe(tcb);
+			if (free_after_send)
+				tcb_destroy_opipe(tcb);
 			
 			/* Remove the message request from buffer */
 			tl_remove(msgreqs, request);

@@ -286,3 +286,16 @@ bool isr_app_terminated(int id);
  * @return false 
  */
 bool isr_halt_pe(int task, int addr);
+
+/**
+ * @brief Receive a message ack and free the proper pipe
+ * 
+ * @details This is a message synchronization mechanism
+ * 
+ * @param cons_task Consumer task ID (sender of the packet)
+ * @param cons_addr Consumer address (sender of the packet)
+ * @param prod_task Producer task ID (receiver of the packet)
+ * 
+ * @return True if the scheduler should be called.
+ */
+bool isr_message_ack(int cons_task, int cons_addr, int prod_task);

@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <errno.h>
 
+#include <memphis.h>
 #include <memphis/services.h>
 
 #include "syscall.h"
@@ -170,6 +171,12 @@ bool isr_handle_broadcast(bcast_t *packet)
 			return isr_app_terminated(task_field);
 		case HALT_PE:
 			return isr_halt_pe(task_field, addr_field);
+		case MESSAGE_ACK:
+			return isr_message_ack(
+				bcast_convert_id(packet->src_id, addr_field), 
+				addr_field, 
+				bcast_convert_id(task_field, MMR_NI_CONFIG)
+			);
 		default:
 			printf(
 				"ERROR: unknown broadcast %x at time %d\n", 
@@ -296,8 +303,9 @@ bool isr_message_request(int cons_task, int cons_addr, int prod_task)
 			while(1);
 		}
 
-		/* Send it like a MESSAGE_DELIVERY */
-		opipe_send(opipe, prod_task, cons_addr);
+		/* Send it like a MESSAGE_DELIVERY 							*/
+		/* Automatically free the buffer after sent, no need to ack */
+		opipe_send(opipe, prod_task, cons_addr, true);
 
 		pmsg_remove(opipe);
 
@@ -353,7 +361,13 @@ bool isr_message_request(int cons_task, int cons_addr, int prod_task)
 				list_t *msgreqs = tcb_get_msgreqs(prod_tcb);
 				tl_emplace_back(msgreqs, cons_task, cons_addr);
 			} else {	/* Message found */
-				if(cons_addr == MMR_NI_CONFIG){
+				/* Ack is only required in task-to-task communication        				*/
+				/* Therefore, the pipe can be freed automatically after sent to peripheral  */
+				bool free_after_send = (cons_task & (MEMPHIS_KERNEL_MSG | MEMPHIS_FORCE_PORT));
+
+				bool local_consumer = (cons_addr == MMR_NI_CONFIG);
+
+				if(local_consumer){
 					/* Message Request came from NoC but the consumer migrated to this address */
 					/* Writes to the consumer page address */
 					tcb_t *cons_tcb = tcb_find(cons_task);
@@ -402,17 +416,22 @@ bool isr_message_request(int cons_task, int cons_addr, int prod_task)
 				} else {
 					/* Send through NoC */
 					// puts("Message found. Sending through NoC.\n");
-					opipe_send(opipe, prod_task, cons_addr);
-					tcb_destroy_opipe(prod_tcb);
+
+					opipe_send(opipe, prod_task, cons_addr, free_after_send);
+
+					if (free_after_send)
+						tcb_destroy_opipe(prod_tcb);
 				}
 
 				/* Release task for execution if it was blocking another send */
-				sched_t *sched = tcb_get_sched(prod_tcb);
-				if(sched_is_waiting_msgreq(sched)){
-					sched_release_wait(sched);
-					force_sched |= sched_is_idle();
-					if(tcb_has_called_exit(prod_tcb)){
-						tcb_terminate(prod_tcb);
+				if (free_after_send || local_consumer) {
+					sched_t *sched = tcb_get_sched(prod_tcb);
+					if(sched_is_waiting_msgreq(sched)){
+						sched_release_wait(sched);
+						force_sched |= sched_is_idle();
+						if(tcb_has_called_exit(prod_tcb)){
+							tcb_terminate(prod_tcb);
+						}
 					}
 				}
 			}
@@ -479,6 +498,17 @@ bool isr_message_delivery(int cons_task, int prod_task, int prod_addr, size_t si
 			dmni_drop_payload(flits_to_drop);
 		}
 		// puts("Message read from DMNI");
+
+		/* If message originated from other task, send ACK 			  */
+		/* Ignore ACK if message originated from Peripheral or Kernel */
+		bool send_ack = !(prod_task & (MEMPHIS_FORCE_PORT | MEMPHIS_KERNEL_MSG));
+		if (send_ack) {
+			/* Just a temporary structure to send ACK */
+			tl_t ack;
+
+			tl_set(&ack, cons_task, MMR_NI_CONFIG);
+			tl_send_ack(&ack, prod_task, prod_addr);
+		}
 
 		/* Release task to execute */
 		sched_t *sched = tcb_get_sched(cons_tcb);
@@ -1047,4 +1077,58 @@ bool isr_halt_pe(int task, int addr)
 	tl_set(halter, task, addr);
 
 	return !sys_halt(halter);
+}
+
+bool isr_message_ack(int cons_task, int cons_addr, int prod_task)
+{
+	// printf("Received message ACK from task %d to task %d\n", cons_task, prod_task);
+
+	/* Get the producer task */
+	tcb_t *prod_tcb = tcb_find(prod_task);
+
+	if(prod_tcb == NULL){
+		/* Task is not here. Probably migrated. */
+		tl_t *mig = tm_find(prod_task);
+
+		if(mig == NULL){
+			puts("ERROR: Task migrated not found in db.");
+			return false;
+		}
+
+		int migrated_addr = tl_get_addr(mig);
+		// printf("Forwarding ACK to address %d\n", migrated_addr);
+
+		/* Forward the message ack to the migrated processor */
+		tl_t ack;
+		tl_set(&ack, cons_task, cons_addr);
+		tl_send_ack(&ack, prod_task, migrated_addr);
+
+		return false; /* No change was made to schedule again */
+	}
+
+	// puts("Producer found!\n");
+		
+	/* Task found. Now search for message. */
+	opipe_t *opipe = tcb_get_opipe(prod_tcb);
+
+	if(opipe == NULL || opipe_get_cons_task(opipe) != cons_task){	/* No message in producer's pipe to the consumer task */
+		/**
+		 * @todo Handle error
+		*/
+		return false;
+	}
+	
+	/* ACK signalizes to destroy the pipe */
+	opipe_pop(opipe);
+	tcb_destroy_opipe(prod_tcb);
+
+	/* Release producer for execution if it was blocking another send */
+	sched_t *sched = tcb_get_sched(prod_tcb);
+	if(sched_is_waiting_msgreq(sched)){
+		sched_release_wait(sched);
+		if(tcb_has_called_exit(prod_tcb))
+			tcb_terminate(prod_tcb);
+	}
+	
+	return sched_is_idle();
 }

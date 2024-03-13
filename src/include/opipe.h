@@ -14,6 +14,7 @@
 #pragma once
 
 #include <stddef.h>
+#include <stdbool.h>
 
 /**
  * @brief This structure stores a task message in kernel space (task -- kernel -> NoC)
@@ -61,8 +62,12 @@ void opipe_pop(opipe_t *opipe);
  * @param opipe Pointer to the pipe
  * @param producer_task ID of the producer task
  * @param consumer_addr Address of the consumer task
+ * @param free_after If should automatically free the buffer after the DMNI sends
+ * 
+ * @details free_after controls when the DMNI frees the buffer. 
+ * If it is false, it should be manually freed by tcb_destroy_opipe.
  */
-void opipe_send(opipe_t *opipe, int producer_task, int consumer_addr);
+void opipe_send(opipe_t *opipe, int producer_task, int consumer_addr, bool free_after);
 
 /**
  * @brief Gets the consumer task of the pipe
