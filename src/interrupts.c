@@ -288,7 +288,7 @@ bool isr_handle_pkt(volatile packet_t *packet)//
 				packet->bss_size
 			);
 		default:
-			printf("ERROR: unknown interrupt at time %d\n", MMR_TICK_COUNTER);
+			printf("ERROR: unknown interrupt %x at time %d\n", packet->service, MMR_TICK_COUNTER);
 			return false;
 	}
 }
@@ -497,20 +497,11 @@ bool isr_message_delivery(int cons_task, int prod_task, int prod_addr, size_t si
 
 		/* Effectively read payload from DMNI */
 		int result = ipipe_receive(ipipe, tcb_get_offset(cons_tcb), size);
-		if (result < 0) {
-			puts("ERROR: buffer failure on message delivery");
-			dmni_drop_payload();
-
-			tl_t nack;
-			tl_set(&nack, cons_task, MMR_NI_CONFIG);
-			tl_send_nack(&nack, prod_task, prod_addr);
-			return false;
-		} else if (result < size) {
-			puts("ERROR: received less bytes than indicated by message length");
-
-			/**
-			 * @todo Invalidate received message?
-			 */
+		if (result < size) {
+			puts("ERROR: buffer or size failure on message delivery");
+			
+			if (result < 0)
+				dmni_drop_payload();
 
 			tl_t nack;
 			tl_set(&nack, cons_task, MMR_NI_CONFIG);
