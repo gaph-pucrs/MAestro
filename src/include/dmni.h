@@ -22,8 +22,10 @@
  * 
  * @param payload_address	Address where the payload will be saved
  * @param payload_size		Number of flits to copy
+ * 
+ * @return Number of bytes read
  */
-void dmni_read(void *payload_address, size_t payload_size);
+int dmni_read(void *payload_address, size_t payload_size);
 
 /**
  * @brief Abstracts the DMNI programming for writing data to NoC and copy from memory.
@@ -44,8 +46,6 @@ void dmni_send(packet_t *packet, void *payload, size_t size, bool should_free);
 void dmni_send_raw(unsigned *packet, size_t size);
 
 /**
- * @brief Requests the DMNI to drop flits from a message payload.
- * 
- * @param payload_size Number of flits to drop from packet payload
+ * @brief Requests the DMNI to drop all flits until an EOP is reached.
  */
-void dmni_drop_payload(unsigned payload_size);
+void dmni_drop_payload();

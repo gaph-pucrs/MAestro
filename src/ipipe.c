@@ -61,33 +61,33 @@ size_t ipipe_transfer(ipipe_t *ipipe, void *offset, void *src, size_t size)
 
 int ipipe_receive(ipipe_t *ipipe, void *offset, size_t size)
 {
-	if(ipipe->buf == NULL)
+	if(ipipe->buf == NULL || ipipe->size < size)
 		return -1;
-
-	if(ipipe->size < size)
-		return 0;
 
 	void *real_ptr = (void*)((unsigned)ipipe->buf | (unsigned)offset);
 	size_t align_size = (size + 3) & ~3;
 
+	int read_flits = 0;
 	if(ipipe->size < align_size){
 		void *tmpbuf = malloc(align_size);
 		if(tmpbuf == NULL)
 			return -1;
 
-		dmni_read(tmpbuf, align_size >> 2);
+		read_flits = dmni_read(tmpbuf, align_size >> 2);
 
 		memcpy(real_ptr, tmpbuf, size);
 		free(tmpbuf);
 	} else {
 		/* Obtain message from DMNI */
-		dmni_read(real_ptr, align_size >> 2);
+		read_flits = dmni_read(real_ptr, align_size >> 2);
 	}
+
+	int read_bytes = read_flits << 2;
 	
-	ipipe->size = size;
+	ipipe->size = align_size > read_bytes ? read_bytes : size;
 	ipipe->read = true;
 
-	return size;
+	return ipipe->size;
 }
 
 void ipipe_set_read(ipipe_t *ipipe, unsigned received)
