@@ -20,13 +20,14 @@
 static const unsigned DMNI_READ  = 0;
 static const unsigned DMNI_WRITE = 1;
 
-void dmni_read(void *payload_address, size_t payload_size)
+int dmni_read(void *payload_address, size_t payload_size)
 {
 	MMR_DMNI_SIZE = (unsigned int)payload_size;
 	MMR_DMNI_OP = DMNI_WRITE;
 	MMR_DMNI_ADDRESS = (unsigned int)payload_address;
 	MMR_DMNI_START = 1;
 	while(MMR_DMNI_RECEIVE_ACTIVE);
+	return MMR_DMNI_READ_FLITS;
 }
 
 void dmni_send(packet_t *packet, void *payload, size_t size, bool should_free)
@@ -84,10 +85,9 @@ void dmni_send_raw(unsigned *packet, size_t size)
 	// puts("[DMNI] Sent.");
 }
 
-void dmni_drop_payload(unsigned payload_size)
+void dmni_drop_payload()
 {
 	// printf("Dropping payload - Size = %u\n", payload_size);
-	MMR_DMNI_SIZE = payload_size;
 	MMR_DMNI_OP = DMNI_READ;
 	MMR_DMNI_ADDRESS = 0;
 	MMR_DMNI_START = 1;

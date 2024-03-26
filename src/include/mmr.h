@@ -32,6 +32,7 @@
 #define MMR_DMNI_START				(*(volatile unsigned int*)0x20000230U)	//!< Signals to start operation
 #define MMR_DMNI_SEND_ACTIVE		(*(volatile unsigned int*)0x20000250U)	//!< Signals a transfer is happening
 #define MMR_DMNI_RECEIVE_ACTIVE		(*(volatile unsigned int*)0x20000260U)	//!< Signals a transfer is happening
+#define MMR_DMNI_READ_FLITS         (*(volatile unsigned int*)0x20000264U)
 #define MMR_SCHEDULING_REPORT		(*(volatile unsigned int*)0x20000270U)	//!< Report what is happening in scheduler
 #define MMR_ADD_PIPE_DEBUG			(*(volatile unsigned int*)0x20000280U)
 #define MMR_REM_PIPE_DEBUG 			(*(volatile unsigned int*)0x20000284U)	//!< Produce debug remove pipe

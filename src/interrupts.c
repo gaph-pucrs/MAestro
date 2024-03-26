@@ -490,20 +490,27 @@ bool isr_message_delivery(int cons_task, int prod_task, int prod_addr, size_t si
 
 		if(ipipe == NULL){
 			puts("ERROR: BUFFER NOT ALLOCATED FOR MD");
-			// printf("Packet payload size = %u\n", pkt_payload_size);
-			unsigned flits_to_drop = (pkt_payload_size-11);
-			dmni_drop_payload(flits_to_drop);
+			dmni_drop_payload();
 			return false;
 		}
 		// printf("Message at virtual address %p\n", ipipe->buf);
 
 		/* Effectively read payload from DMNI */
 		int result = ipipe_receive(ipipe, tcb_get_offset(cons_tcb), size);
-		if(result != size){
+		if (result < 0) {
 			puts("ERROR: buffer failure on message delivery");
-			// printf("Packet payload size = %u\n", pkt_payload_size);
-			unsigned flits_to_drop = (pkt_payload_size-11);
-			dmni_drop_payload(flits_to_drop);
+			dmni_drop_payload();
+
+			tl_t nack;
+			tl_set(&nack, cons_task, MMR_NI_CONFIG);
+			tl_send_nack(&nack, prod_task, prod_addr);
+			return false;
+		} else if (result < size) {
+			puts("ERROR: received less bytes than indicated by message length");
+
+			/**
+			 * @todo Invalidate received message?
+			 */
 
 			tl_t nack;
 			tl_set(&nack, cons_task, MMR_NI_CONFIG);
