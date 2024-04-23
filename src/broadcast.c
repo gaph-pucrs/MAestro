@@ -20,16 +20,24 @@
 
 #include "mmr.h"
 
+/**
+ * @brief Converts an address into a sequential ID
+ * 
+ * @param addr hexadecimal address
+ * @return int16_t sequential ID
+ */
+int16_t _bcast_convert_seq_id(int16_t addr);
+
 bool bcast_send(bcast_t *packet, int16_t tgt_addr, uint8_t service)
 {
 	if((MMR_DMNI_STATUS & DMNI_STATUS_LOCAL_BUSY))
 		return false;
 
-	MMR_DMNI_BRLITE_SERVICE = service & 0x3;
-	MMR_DMNI_BRLITE_KSVC = packet->service;
+	MMR_DMNI_BRLITE_SERVICE  = service & 0x3;
+	MMR_DMNI_BRLITE_KSVC     = packet->service;
 	MMR_DMNI_BRLITE_PRODUCER = packet->src_id;
-	MMR_DMNI_BRLITE_TARGET = tgt_addr;
-	MMR_DMNI_BRLITE_PAYLOAD = packet->payload;
+	MMR_DMNI_BRLITE_TARGET   = _bcast_convert_seq_id(tgt_addr);
+	MMR_DMNI_BRLITE_PAYLOAD  = packet->payload;
 	
 	MMR_DMNI_BRLITE_START = 1;
 	return true;
@@ -79,4 +87,12 @@ void bcast_fake_packet(bcast_t *bcast_packet, packet_t *packet)
 int bcast_convert_id(int16_t id, int16_t addr)
 {
 	return (id == -1) ? (MEMPHIS_KERNEL_MSG | (int)addr) : id;
+}
+
+int16_t _bcast_convert_seq_id(int16_t addr)
+{
+	if (addr == -1)
+		return -1;
+
+	return (addr >> 8) * (MMR_DMNI_MANYCORE_SIZE & 0xFFFF) + (addr & 0xFF);
 }
