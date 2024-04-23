@@ -95,7 +95,7 @@ void tl_send_dav(tl_t *dav, int cons_task, int cons_addr)
 		packet.src_id = (dav->task & MEMPHIS_KERNEL_MSG) ? -1 : dav->task;
 		packet.payload = ((cons_task & MEMPHIS_KERNEL_MSG) ? -1 : cons_task) & 0xFFFF;
 		packet.payload |= dav->addr << 16;
-		// puts("Sending DATA_AV via BrNoC\n");
+		// puts("Sending DATA_AV via BrNoC");
 		while(!bcast_send(&packet, cons_addr, BR_SVC_TGT));
 	}
 }
