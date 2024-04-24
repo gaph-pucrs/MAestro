@@ -31,7 +31,7 @@ tl_t *halter = NULL;
 
 tcb_t *isr_isr(unsigned status)
 {
-	printf("ISR called\n");
+	// printf("ISR called\n");
 	sched_report_interruption();
 
 	if(sched_is_idle())
@@ -132,7 +132,7 @@ tcb_t *isr_isr(unsigned status)
 		}
 	}
 
-	printf("Scheduled %p\n", current);
+	// printf("Scheduled %p\n", current);
     /* Runs the scheduled task */
     return current;
 }
@@ -182,7 +182,7 @@ bool isr_handle_broadcast(bcast_t *packet)
 	}
 }
 
-bool isr_handle_pkt(volatile packet_t *packet)//
+bool isr_handle_pkt(volatile packet_t *packet)
 {
 	// printf("Packet received %x\n", packet->service);
 	switch(packet->service){
@@ -312,7 +312,7 @@ bool isr_message_request(int cons_task, int cons_addr, int prod_task)
 			tl_send_dav(&dav, cons_task, cons_addr);
 		}
 	} else {
-		// printf("Received message request from task %d to task %d\n", cons_task, prod_task);
+		// printf("Received message request from task %x to task %x\n", cons_task, prod_task);
 
 		/* Get the producer task */
 		tcb_t *prod_tcb = tcb_find(prod_task);
@@ -404,6 +404,7 @@ bool isr_message_request(int cons_task, int cons_addr, int prod_task)
 				} else {
 					/* Send through NoC */
 					// puts("Message found. Sending through NoC.\n");
+					// printf("Sending DELIVERY from %x to %x\n", prod_task, cons_task);
 					opipe_send(opipe, prod_task, cons_addr);
 					tcb_destroy_opipe(prod_tcb);
 				}
@@ -441,7 +442,7 @@ bool isr_message_delivery(int cons_task, int prod_task, int prod_addr, size_t si
 		return ret;
 	} else {
 		/* Get consumer task */
-		// printf("Received delivery to task %d with size %d\n", cons_task, size);
+		// printf("Received delivery to task %x from %x\n", cons_task, prod_task);
 		tcb_t *cons_tcb = tcb_find(cons_task);
 
 		if(cons_tcb == NULL){
