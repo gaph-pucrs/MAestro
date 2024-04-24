@@ -135,9 +135,11 @@ tcb_t *sys_syscall(
 	// schedule_after_syscall |= (MMR_IRQ_STATUS & MMR_IRQ_MASK & IRQ_SCHEDULER);
 	if(schedule_after_syscall){
 		sched_run();
+		// printf("Scheduled %p\n", sched_get_current_tcb());
 		return sched_get_current_tcb();
 	}
 
+	// printf("Scheduled %p\n", sched_get_current_tcb());
 	return current;
 }
 
@@ -164,6 +166,7 @@ int sys_exit(tcb_t *tcb, int status)
 int sys_writepipe(tcb_t *tcb, void *buf, size_t size, int cons_task, bool sync)
 {
 	const int prod_task = tcb_get_id(tcb);
+	// printf("Calling writepipe from %x to %x; SYNC=%d\n", prod_task, cons_task, sync);
 
 	if((cons_task & 0xFFFF0000) && prod_task >> 8 != 0){
 		puts(
@@ -193,7 +196,7 @@ int sys_writepipe(tcb_t *tcb, void *buf, size_t size, int cons_task, bool sync)
 
 		cons_addr = app_get_address(app, cons_task);
 		if(cons_addr == -1){
-			puts("ERROR: task not found");
+			printf("ERROR: task %x not found when %x tried to writepipe\n", cons_task, prod_task);
 			return -EINVAL;
 		}
 
@@ -303,6 +306,7 @@ int sys_writepipe(tcb_t *tcb, void *buf, size_t size, int cons_task, bool sync)
 			}
 
 			/* Send through NoC */
+			// printf("Sending DELIVERY from %x to %x; SYNC=%d\n", prod_task, cons_task, sync);
 			opipe_send(
 				opipe, 
 				prod_task, 
@@ -347,6 +351,7 @@ int sys_writepipe(tcb_t *tcb, void *buf, size_t size, int cons_task, bool sync)
 				tl_t dav;
 				tl_set(&dav, prod_task, MMR_DMNI_ADDRESS);
 				
+				// printf("Send DATA_AV from %x to %x\n", prod_task, cons_task);
 				tl_send_dav(&dav, cons_task, cons_addr);
 			}
 		}
@@ -557,6 +562,7 @@ int sys_readpipe(tcb_t *tcb, void *buf, size_t size, int prod_task, bool sync)
 		tl_t msgreq;
 		tl_set(&msgreq, cons_task, MMR_DMNI_ADDRESS);
 
+		// printf("Send REQUEST from %x to %x\n", cons_task, prod_task);
 		tl_send_msgreq(&msgreq, prod_task, prod_addr);
 		// puts("Sent request");
 	}
