@@ -73,10 +73,31 @@ caddr_t _sbrk(int incr)
 
 int _close(int file)
 {
+	errno = EBADF;
 	return -1;
 }
 
 int _gettimeofday(struct timeval *tp, void *tzp)
 {
 	return -1;
+}
+
+off_t _lseek(int file, off_t ptr, int dir)
+{
+	if (file != STDOUT_FILENO && file != STDERR_FILENO) {
+		errno = EBADF;
+		return -1;
+	}
+
+	return 0;
+}
+
+ssize_t _read(int file, void *ptr, size_t len)
+{
+	if (file != STDIN_FILENO) {
+		errno = EBADF;
+		return -1;
+	}
+
+	return 0;
 }
