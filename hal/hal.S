@@ -12,15 +12,13 @@
 # context switching
 ##
 
+#include <hal.h>
+
 .equ INTR_MASK,  0x80000000
 .equ ECALL_MASK, 0x00000008
 
-.equ RTC_ADDR,  0x02000000
-.equ PLIC_ADDR, 0x04000000
-.equ DMNI_ADDR, 0x08000000
-.equ MAX_REGISTERS, 30
-.equ PC_ADDR, MAX_REGISTERS*4
-.equ PAGE_ADDR, (MAX_REGISTERS+1)*4
+.equ HAL_REG_PC, 	HAL_MAX_REGISTERS
+.equ HAL_REG_PAGE, (HAL_MAX_REGISTERS+1)
 
 .equ mvmdo,  0x7C0
 .equ mvmds,  0x7C1
@@ -57,7 +55,7 @@ _start:
 								# Last bit is 0, means DIRECT mode
 
 	# Load data memory size to sp
-	li		t2, DMNI_ADDR
+	li		t2, MMR_DMNI_BASE
 	lw		sp, 0x20(t2)
 
 	# Configure virtual memory data size mask
@@ -66,7 +64,7 @@ _start:
 	addi	sp, sp, 1
 
 	# Set stack to top of data memory
-	li		t4, 0x01000000
+	li		t4, MMR_DATA_BASE
 	or		sp, sp, t4
 	
 	# Load instruction memory size
@@ -80,7 +78,7 @@ _start:
 
 	# Set XOSVM allowed mask
 	csrw	mvmim, zero
-	li		t6, 0x01000000
+	li		t6, MMR_DATA_BASE
 	csrw 	mvmdm, t6
 
 	# Clear the BSS
@@ -147,29 +145,29 @@ save_minimum:
 	# Callee registers are saved by the ABI.
 	# Despite being a call, syscall needs to save everything (except a0, which will hold the return value)
 
-	sw		ra,  0(s0)
-	sw		t0, 12(s0)
-	sw		t1, 16(s0)
-	sw		t2, 20(s0)
+	sw		ra, (HAL_REG_RA*4)(s0)
+	sw		t0, (HAL_REG_T0*4)(s0)
+	sw		t1, (HAL_REG_T1*4)(s0)
+	sw		t2, (HAL_REG_T2*4)(s0)
 	# a0 will be modified by syscall
-	sw		a1, 36(s0)
-	sw		a2, 40(s0)
-	sw		a3, 44(s0)
-	sw		a4, 48(s0)
-	sw		a5, 52(s0)
-	sw		a6, 56(s0)
-	sw		a7, 60(s0)
-	sw		t3, 104(s0)
-	sw		t4, 108(s0)
-	sw		t5, 112(s0)
-	sw		t6, 116(s0)
+	sw		a1, (HAL_REG_A1*4)(s0)
+	sw		a2, (HAL_REG_A2*4)(s0)
+	sw		a3, (HAL_REG_A3*4)(s0)
+	sw		a4, (HAL_REG_A4*4)(s0)
+	sw		a5, (HAL_REG_A5*4)(s0)
+	sw		a6, (HAL_REG_A6*4)(s0)
+	sw		a7, (HAL_REG_A7*4)(s0)
+	sw		t3, (HAL_REG_T3*4)(s0)
+	sw		t4, (HAL_REG_T4*4)(s0)
+	sw		t5, (HAL_REG_T5*4)(s0)
+	sw		t6, (HAL_REG_T6*4)(s0)
 
-	csrr	t3, mscratch	# Load sp that is in mscratch
-	sw		t3,  4(s0)		# Save sp to allow stack check by kernel
+	csrr	t3, mscratch			# Load sp that is in mscratch
+	sw		t3, (HAL_REG_SP*4)(s0)	# Save sp to allow stack check by kernel
 
 	csrr	t4, mepc		# Always save mepc because we must add 4 before returning
 	addi	t4, t4, 4
-	sw		t4, PC_ADDR(s0)
+	sw		t4, (HAL_REG_PC*4)(s0)
 	
 	# Check if it was ecall
 	csrr	t0, mcause					# Load mcause
@@ -203,25 +201,25 @@ intr_handler:
 	# sp is already saved
 
 	lw 		 t0,  4(sp)
-	sw		 t0,  8(s0) # Save gp that is in stack
+	sw		 t0, (HAL_REG_GP*4)(s0) # Save gp that is in stack
 
 	lw		 t1,  0(sp)
-	sw		 t1, 24(s0) # Save s0 that is in stack
+	sw		 t1, (HAL_REG_S0*4)(s0) # Save s0 that is in stack
 
 	addi	 sp, sp, 8  # Pop s0 and gp from stack
 
-	sw		 s1, 28(s0)
-	sw		 a0, 32(s0)	# a0 was not saved before
-	sw		 s2, 64(s0)
-	sw		 s3, 68(s0)
-	sw		 s4, 72(s0)
-	sw		 s5, 76(s0)
-	sw		 s6, 80(s0)
-	sw		 s7, 84(s0)
-	sw		 s8, 88(s0)
-    sw		 s9, 92(s0)
-	sw		s10, 96(s0)
-	sw		s11,100(s0)
+	sw		 s1,  (HAL_REG_S1*4)(s0)
+	sw		 a0,  (HAL_REG_A0*4)(s0)	# a0 was not saved before
+	sw		 s2,  (HAL_REG_S2*4)(s0)
+	sw		 s3,  (HAL_REG_S4*4)(s0)
+	sw		 s4,  (HAL_REG_S4*4)(s0)
+	sw		 s5,  (HAL_REG_S5*4)(s0)
+	sw		 s6,  (HAL_REG_S6*4)(s0)
+	sw		 s7,  (HAL_REG_S7*4)(s0)
+	sw		 s8,  (HAL_REG_S8*4)(s0)
+    sw		 s9,  (HAL_REG_S9*4)(s0)
+	sw		s10, (HAL_REG_S10*4)(s0)
+	sw		s11, (HAL_REG_S11*4)(s0)
 
 isr_entry:
 	# JUMP TO INTERRUPT SERVICE ROUTINE WITH ARGS
@@ -242,20 +240,20 @@ should_restore_isr:
 	beq		a0, s0, restore_minimum
 
 	# Else if a new task was scheduled, restore a bit more of the context
-	lw		 s1, 28(a0)
-	lw		 s2, 64(a0)
-	lw		 s3, 68(a0)
-	lw		 s4, 72(a0)
-	lw		 s5, 76(a0)
-	lw		 s6, 80(a0)
-	lw		 s7, 84(a0)
-	lw		 s8, 88(a0)
-    lw		 s9, 92(a0)
-	lw		s10, 96(a0)
-	lw		s11,100(a0)
+	lw		 s1,  (HAL_REG_S1*4)(a0)
+	lw		 s2,  (HAL_REG_S2*4)(a0)
+	lw		 s3,  (HAL_REG_S3*4)(a0)
+	lw		 s4,  (HAL_REG_S4*4)(a0)
+	lw		 s5,  (HAL_REG_S5*4)(a0)
+	lw		 s6,  (HAL_REG_S6*4)(a0)
+	lw		 s7,  (HAL_REG_S7*4)(a0)
+	lw		 s8,  (HAL_REG_S8*4)(a0)
+    lw		 s9,  (HAL_REG_S9*4)(a0)
+	lw		s10, (HAL_REG_S10*4)(a0)
+	lw		s11, (HAL_REG_S11*4)(a0)
 
 	# Load offset from scheduled task
-	lw		t1, PAGE_ADDR(a0)
+	lw		t1, (HAL_REG_PAGE*4)(a0)
 	lw		t1, 0(t1)
 	csrw	mvmdo, t1
 	csrw	mvmio, t1
@@ -263,34 +261,34 @@ should_restore_isr:
 	# Continue to restore the remaining context
 restore_minimum:
 	# Load epc from scheduled task
-	lw		t0, PC_ADDR(a0)
+	lw		t0, (HAL_REG_PC*4)(a0)
 	csrw	mepc, t0
 
 	/* MPPRIV = user, MPIE = en */
 	li		t1, 0x80
 	csrw	mstatus, t1
 
-	lw		 ra,  0(a0)
-	lw		 sp,  4(a0)
-	lw		 gp,  8(a0)
-	lw		 t0, 12(a0)
-	lw		 t1, 16(a0)
-	lw		 t2, 20(a0)
-	lw		 s0, 24(a0)	# Only restore s0 because we used to store current.
-	lw		 a1, 36(a0)
-	lw		 a2, 40(a0)
-	lw		 a3, 44(a0)
-	lw		 a4, 48(a0)
-	lw		 a5, 52(a0)
-	lw		 a6, 56(a0)
-	lw		 a7, 60(a0)
-	lw		 t3,104(a0)
-	lw		 t4,108(a0)
-	lw		 t5,112(a0)
-	lw		 t6,116(a0)
+	lw		 ra, (HAL_REG_RA*4)(a0)
+	lw		 sp, (HAL_REG_SP*4)(a0)
+	lw		 gp, (HAL_REG_GP*4)(a0)
+	lw		 t0, (HAL_REG_T0*4)(a0)
+	lw		 t1, (HAL_REG_T1*4)(a0)
+	lw		 t2, (HAL_REG_T2*4)(a0)
+	lw		 s0, (HAL_REG_S0*4)(a0)	# Only restore s0 because we used to store current.
+	lw		 a1, (HAL_REG_A1*4)(a0)
+	lw		 a2, (HAL_REG_A2*4)(a0)
+	lw		 a3, (HAL_REG_A3*4)(a0)
+	lw		 a4, (HAL_REG_A4*4)(a0)
+	lw		 a5, (HAL_REG_A5*4)(a0)
+	lw		 a6, (HAL_REG_A6*4)(a0)
+	lw		 a7, (HAL_REG_A7*4)(a0)
+	lw		 t3, (HAL_REG_T3*4)(a0)
+	lw		 t4, (HAL_REG_T4*4)(a0)
+	lw		 t5, (HAL_REG_T5*4)(a0)
+	lw		 t6, (HAL_REG_T6*4)(a0)
 	# No need to restore remaining registers. ABI takes care of this.
 
-	lw		 a0, 32(a0)
+	lw		 a0, (HAL_REG_A0*4)(a0)
 
 	mret
 
@@ -305,25 +303,25 @@ ecall_handler:
 	# Otherwise it is needed to save the previous task (s0) context
 	# Caller registers and sp are already saved
 
-	lw 		 t1,  4(sp)
-	sw		 t1,  8(s0) # Save gp that is in stack
+	lw 		 t1, 4(sp)
+	sw		 t1, (HAL_REG_GP*4)(s0) # Save gp that is in stack
 
-	lw		 t2,  0(sp)
-	sw		 t2, 24(s0) # Save s0 that is in stack
+	lw		 t2, 0(sp)
+	sw		 t2, (HAL_REG_S0*4)(s0) # Save s0 that is in stack
 
 	addi	 sp, sp, 8  # Pop s0 and gp from stack
 
-	sw		 s1, 28(s0)
-	sw		 s2, 64(s0)
-	sw		 s3, 68(s0)
-	sw		 s4, 72(s0)
-	sw		 s5, 76(s0)
-	sw		 s6, 80(s0)
-	sw		 s7, 84(s0)
-	sw		 s8, 88(s0)
-    sw		 s9, 92(s0)
-	sw		s10, 96(s0)
-	sw		s11,100(s0)
+	sw		 s1,  (HAL_REG_S1*4)(s0)
+	sw		 s2,  (HAL_REG_S2*4)(s0)
+	sw		 s3,  (HAL_REG_S3*4)(s0)
+	sw		 s4,  (HAL_REG_S4*4)(s0)
+	sw		 s5,  (HAL_REG_S5*4)(s0)
+	sw		 s6,  (HAL_REG_S6*4)(s0)
+	sw		 s7,  (HAL_REG_S7*4)(s0)
+	sw		 s8,  (HAL_REG_S8*4)(s0)
+    sw		 s9,  (HAL_REG_S9*4)(s0)
+	sw		s10, (HAL_REG_S10*4)(s0)
+	sw		s11, (HAL_REG_S11*4)(s0)
 
 restore_complete:
 	csrw	 mscratch, sp	# Save kernel sp
@@ -334,10 +332,10 @@ restore_complete:
 should_restore_complete:
 	# Otherwise, restore context of scheduled task
 	# We don't know if the scheduled task stopped on a call or intr, so restore everything
-	lw		 t0, PC_ADDR(a0)
+	lw		 t0, (HAL_REG_PC*4)(a0)
 	csrw	 mepc, t0			# Load task PC
 
-	lw		 t1, PAGE_ADDR(a0)
+	lw		 t1, (HAL_REG_PAGE*4)(a0)
 	lw		 t1, 0(t1)
 	csrw	mvmdo, t1
 	csrw	mvmio, t1
@@ -346,38 +344,38 @@ should_restore_complete:
 	li		t2, 0x80
 	csrw	mstatus, t2
 
-	lw		 ra,  0(a0)
-	lw		 sp,  4(a0)
-	lw		 gp,  8(a0)
-	lw		 t0, 12(a0)
-	lw		 t1, 16(a0)
-	lw		 t2, 20(a0)
-	lw		 s0, 24(a0)
-	lw		 s1, 28(a0)
+	lw		 ra,  (HAL_REG_RA*4)(a0)
+	lw		 sp,  (HAL_REG_SP*4)(a0)
+	lw		 gp,  (HAL_REG_GP*4)(a0)
+	lw		 t0,  (HAL_REG_T0*4)(a0)
+	lw		 t1,  (HAL_REG_T1*4)(a0)
+	lw		 t2,  (HAL_REG_T2*4)(a0)
+	lw		 s0,  (HAL_REG_S0*4)(a0)
+	lw		 s1,  (HAL_REG_S1*4)(a0)
 	# a0 is being used
-	lw		 a1, 36(a0)
-	lw		 a2, 40(a0)
-	lw		 a3, 44(a0)
-	lw		 a4, 48(a0)
-	lw		 a5, 52(a0)
-	lw		 a6, 56(a0)
-	lw		 a7, 60(a0)
-	lw		 s2, 64(a0)
-	lw		 s3, 68(a0)
-	lw		 s4, 72(a0)
-	lw		 s5, 76(a0)
-	lw		 s6, 80(a0)
-	lw		 s7, 84(a0)
-	lw		 s8, 88(a0)
-    lw		 s9, 92(a0)
-	lw		s10, 96(a0)
-	lw		s11,100(a0)
-	lw		 t3,104(a0)
-	lw		 t4,108(a0)
-	lw		 t5,112(a0)
-	lw		 t6,116(a0)
+	lw		 a1,  (HAL_REG_A1*4)(a0)
+	lw		 a2,  (HAL_REG_A2*4)(a0)
+	lw		 a3,  (HAL_REG_A3*4)(a0)
+	lw		 a4,  (HAL_REG_A4*4)(a0)
+	lw		 a5,  (HAL_REG_A5*4)(a0)
+	lw		 a6,  (HAL_REG_A6*4)(a0)
+	lw		 a7,  (HAL_REG_A7*4)(a0)
+	lw		 s2,  (HAL_REG_S2*4)(a0)
+	lw		 s3,  (HAL_REG_S3*4)(a0)
+	lw		 s4,  (HAL_REG_S4*4)(a0)
+	lw		 s5,  (HAL_REG_S5*4)(a0)
+	lw		 s6,  (HAL_REG_S6*4)(a0)
+	lw		 s7,  (HAL_REG_S7*4)(a0)
+	lw		 s8,  (HAL_REG_S8*4)(a0)
+    lw		 s9,  (HAL_REG_S9*4)(a0)
+	lw		s10, (HAL_REG_S10*4)(a0)
+	lw		s11, (HAL_REG_S11*4)(a0)
+	lw		 t3,  (HAL_REG_T3*4)(a0)
+	lw		 t4,  (HAL_REG_T4*4)(a0)
+	lw		 t5,  (HAL_REG_T5*4)(a0)
+	lw		 t6,  (HAL_REG_T6*4)(a0)
 
-	lw		 a0, 32(a0)
+	lw		 a0,  (HAL_REG_A0*4)(a0)
 	
 	mret
 
@@ -385,29 +383,29 @@ ecall_return:
 	# Restore minimum context
 	# Need to restore all caller-saved registers
 	# Callee registers are taken care by the ABI (except s0)
-	lw		 t0, PC_ADDR(a0)
+	lw		 t0, (HAL_REG_PC*4)(a0)
 	csrw	 mepc, t0			# Load task PC
 
 	/* MPPRIV = user, MPIE = en */
 	li		t1, 0x80
 	csrw	mstatus, t1
 
-	lw		 ra,  0(s0)
-	lw		 t0, 12(s0)
-	lw		 t1, 16(s0)
-	lw		 t2, 20(s0)
-	lw		 a0, 32(s0)
-	lw 		 a1, 36(s0)
-	lw		 a2, 40(s0)
-	lw		 a3, 44(s0)
-	lw		 a4, 48(s0)
-	lw		 a5, 52(s0)
-	lw		 a6, 56(s0)
-	lw		 a7, 60(s0)
-	lw		 t3,104(s0)
-	lw		 t4,108(s0)
-	lw		 t5,112(s0)
-	lw		 t6,116(s0)
+	lw		 ra, (HAL_REG_RA*4)(s0)
+	lw		 t0, (HAL_REG_T0*4)(s0)
+	lw		 t1, (HAL_REG_T1*4)(s0)
+	lw		 t2, (HAL_REG_T2*4)(s0)
+	lw		 a0, (HAL_REG_A0*4)(s0)
+	lw 		 a1, (HAL_REG_A1*4)(s0)
+	lw		 a2, (HAL_REG_A2*4)(s0)
+	lw		 a3, (HAL_REG_A3*4)(s0)
+	lw		 a4, (HAL_REG_A4*4)(s0)
+	lw		 a5, (HAL_REG_A5*4)(s0)
+	lw		 a6, (HAL_REG_A6*4)(s0)
+	lw		 a7, (HAL_REG_A7*4)(s0)
+	lw		 t3, (HAL_REG_T3*4)(s0)
+	lw		 t4, (HAL_REG_T4*4)(s0)
+	lw		 t5, (HAL_REG_T5*4)(s0)
+	lw		 t6, (HAL_REG_T6*4)(s0)
 
 	lw 		 gp,  4(sp)	# Restore gp that is in stack
 	lw		 s0,  0(sp) # Restore s0 that is in stack
