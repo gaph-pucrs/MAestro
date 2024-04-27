@@ -94,5 +94,5 @@ int16_t _bcast_convert_seq_id(int16_t addr)
 	if (addr == -1)
 		return -1;
 
-	return (addr >> 8) * (MMR_DMNI_MANYCORE_SIZE & 0xFFFF) + (addr & 0xFF);
+	return (addr & 0xFF) * (MMR_DMNI_MANYCORE_SIZE >> 16) + (addr >> 8);
 }
