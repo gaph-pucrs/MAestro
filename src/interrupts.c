@@ -193,7 +193,7 @@ bool isr_handle_pkt(volatile packet_t *packet)
 				packet->producer_task
 			);
 		case MESSAGE_DELIVERY:
-			// putsv("Packet length is ", packet->msg_length);
+			// printf("Packet length is %d\n", packet->msg_length);
 			return isr_message_delivery(
 				packet->consumer_task, 
 				packet->producer_task, 
@@ -277,13 +277,14 @@ bool isr_handle_pkt(volatile packet_t *packet)
 				packet->bss_size
 			);
 		default:
-			printf("ERROR: unknown interrupt at time %d\n", MMR_RTC_MTIME);
+			printf("ERROR: unknown packet %x at time %d\n", packet->service, MMR_RTC_MTIME);
 			return false;
 	}
 }
 
 bool isr_message_request(int cons_task, int cons_addr, int prod_task)
 {
+	// printf("R %x->%x\n", cons_task, prod_task);
 	bool force_sched = false;
 
 	if(prod_task & MEMPHIS_KERNEL_MSG){
@@ -427,7 +428,7 @@ bool isr_message_request(int cons_task, int cons_addr, int prod_task)
 
 bool isr_message_delivery(int cons_task, int prod_task, int prod_addr, size_t size, unsigned pkt_payload_size)
 {
-	// puts("ISR Delivery");
+	// printf("D %x->%x\n", prod_task, cons_task);
 	if(cons_task & MEMPHIS_KERNEL_MSG){
 		/* This message was directed to kernel */
 		size_t align_size = (size + 3) & ~3;
@@ -498,7 +499,7 @@ bool isr_message_delivery(int cons_task, int prod_task, int prod_addr, size_t si
 
 bool isr_data_available(int cons_task, int prod_task, int prod_addr)
 {
-	// printf("DATA_AV from id %x addr %x to id %x\n", prod_task, prod_addr, cons_task);
+	// printf("A %x->%x\n", prod_task, cons_task);
 	if(cons_task & MEMPHIS_KERNEL_MSG){
 		/* This message was directed to kernel */
 		/* Kernel is always ready to receive. Send message request */
