@@ -165,15 +165,16 @@ save_minimum:
 	csrr	t3, mscratch			# Load sp that is in mscratch
 	sw		t3, (HAL_REG_SP*4)(s0)	# Save sp to allow stack check by kernel
 
-	csrr	t4, mepc		# Always save mepc because we must add 4 before returning
-	addi	t4, t4, 4
-	sw		t4, (HAL_REG_PC*4)(s0)
+	csrr	t4, mepc		# Load mepc, will have to save later
 	
 	# Check if it was ecall
 	csrr	t0, mcause					# Load mcause
 	li		t1, INTR_MASK				# Bit 31 (interrupt)
 	and		t1, t1, t0					# t1 = mcause AND interrupt mask
 	bnez	t1, intr_handler			# If INTR mask is true, jump to interrupt handler
+
+	addi	t4, t4, 4
+	sw		t4, (HAL_REG_PC*4)(s0)     # save mepc of returning instruction
 
 	li 		t2, ECALL_MASK				# Bit 3 (ecall)
 	and 	t2, t2, t0					# t2 = mcause AND ecall mask
@@ -199,6 +200,7 @@ intr_handler:
 	# Therefore, save callee registers here.
 
 	# sp is already saved
+	sw		 t4, (HAL_REG_PC*4)(s0)  # save mepc of interrupted (not finished) instruction
 
 	lw 		 t0,  4(sp)
 	sw		 t0, (HAL_REG_GP*4)(s0) # Save gp that is in stack
