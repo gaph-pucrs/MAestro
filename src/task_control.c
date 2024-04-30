@@ -139,7 +139,8 @@ void _tcb_send_aborted(tcb_t *tcb)
 void tcb_abort_task(tcb_t *tcb)
 {
 	/* Send TASK_ABORTED */
-	_tcb_send_aborted(tcb);
+	if (tl_get_task(&(tcb->mapper)) != -1)
+		_tcb_send_aborted(tcb);
 
 	tcb_remove(tcb);
 }
