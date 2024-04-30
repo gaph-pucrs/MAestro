@@ -81,49 +81,20 @@ int tl_get_addr(tl_t *tl)
 
 void tl_send_dav(tl_t *dav, int cons_task, int cons_addr)
 {
-	if(cons_task & MEMPHIS_FORCE_PORT){
-		/* Message directed to peripheral, send via Hermes */
-		packet_t *packet = pkt_slot_get();
+	packet_t *packet = pkt_slot_get();
 
-		pkt_set_data_av(packet, cons_addr, dav->task, cons_task, dav->addr);
+	pkt_set_data_av(packet, cons_addr, dav->task, cons_task, dav->addr);
 
-		dmni_send(packet, NULL, 0, false);
-	} else {
-		bcast_t packet;
-
-		packet.service = DATA_AV;
-		packet.src_id = (dav->task & MEMPHIS_KERNEL_MSG) ? -1 : dav->task;
-		packet.payload = ((cons_task & MEMPHIS_KERNEL_MSG) ? -1 : cons_task) & 0xFFFF;
-		packet.payload |= dav->addr << 16;
-		// puts("Sending DATA_AV via BrNoC");
-		while(!bcast_send(&packet, cons_addr, BR_SVC_TGT));
-	}
+	dmni_send(packet, NULL, 0, false);
 }
 
 void tl_send_msgreq(tl_t *msgreq, int prod_task, int prod_addr)
 {
-	if(prod_task & MEMPHIS_FORCE_PORT){
-		/* Message directed to peripheral, send via Hermes */
-		packet_t *packet = pkt_slot_get();
+	packet_t *packet = pkt_slot_get();
 
-		pkt_set_message_request(packet, prod_addr, msgreq->addr, prod_task, msgreq->task);
+	pkt_set_message_request(packet, prod_addr, msgreq->addr, prod_task, msgreq->task);
 
-		// puts("Sending MESSAGE_REQUEST via DMNI");
-
-		dmni_send(packet, NULL, 0, false);
-	} else {
-		bcast_t packet;
-
-		packet.service = MESSAGE_REQUEST;
-		packet.src_id = (msgreq->task & MEMPHIS_KERNEL_MSG) ? -1 : msgreq->task;
-		packet.payload = (
-				(prod_task & MEMPHIS_KERNEL_MSG) ? -1 : prod_task
-			) & 
-			0xFFFF;
-		packet.payload |= msgreq->addr << 16;
-		// puts("Sending MESSAGE_REQUEST via BrNoC");
-		while(!bcast_send(&packet, prod_addr, BR_SVC_TGT));
-	}
+	dmni_send(packet, NULL, 0, false);
 }
 
 void tl_set(tl_t *tl, int task, int addr)
