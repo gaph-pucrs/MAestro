@@ -306,12 +306,12 @@ int sys_writepipe(tcb_t *tcb, void *buf, size_t size, int cons_task, bool sync)
 			}
 
 			/* Send through NoC */
-			// printf("Sending DELIVERY from %x to %x; SYNC=%d\n", prod_task, cons_task, sync);
 			opipe_send(
 				opipe, 
 				prod_task, 
 				req_addr
 			);
+			// printf("* %x->%x D\n", prod_task, cons_task);
 
 			tcb_destroy_opipe(tcb);
 			
@@ -351,8 +351,8 @@ int sys_writepipe(tcb_t *tcb, void *buf, size_t size, int cons_task, bool sync)
 				tl_t dav;
 				tl_set(&dav, prod_task, MMR_DMNI_ADDRESS);
 				
-				// printf("Send DATA_AV from %x to %x\n", prod_task, cons_task);
 				tl_send_dav(&dav, cons_task, cons_addr);
+				// printf("* %x->%x A\n", prod_task, cons_task);
 			}
 		}
 
@@ -562,9 +562,8 @@ int sys_readpipe(tcb_t *tcb, void *buf, size_t size, int prod_task, bool sync)
 		tl_t msgreq;
 		tl_set(&msgreq, cons_task, MMR_DMNI_ADDRESS);
 
-		// printf("Send REQUEST from %x to %x\n", cons_task, prod_task);
 		tl_send_msgreq(&msgreq, prod_task, prod_addr);
-		// puts("Sent request");
+		// printf("* %x->%x R\n", cons_task, prod_task);
 	}
 
 	/* Stores the message pointer to receive */
@@ -667,6 +666,7 @@ bool sys_kernel_writepipe(void *buf, size_t size, int cons_task, int cons_addr)
 			tl_set(&dav, MEMPHIS_KERNEL_MSG | MMR_DMNI_ADDRESS, MMR_DMNI_ADDRESS);
 
 			tl_send_dav(&dav, cons_task, cons_addr);
+			// printf("* %x->%x A\n", MEMPHIS_KERNEL_MSG | MMR_DMNI_ADDRESS, cons_task);
 		}
 	}
 

@@ -301,6 +301,7 @@ bool isr_message_request(int cons_task, int cons_addr, int prod_task)
 
 		/* Send it like a MESSAGE_DELIVERY */
 		opipe_send(opipe, prod_task, cons_addr);
+		// printf("* %x->%x D\n", prod_task, cons_task);
 
 		pmsg_remove(opipe);
 
@@ -311,6 +312,7 @@ bool isr_message_request(int cons_task, int cons_addr, int prod_task)
 			tl_set(&dav, MEMPHIS_KERNEL_MSG | MMR_DMNI_ADDRESS, MMR_DMNI_ADDRESS);
 
 			tl_send_dav(&dav, cons_task, cons_addr);
+			// printf("* %x->%x A\n", prod_task, cons_task);
 		}
 	} else {
 		// printf("Received message request from task %x to task %x\n", cons_task, prod_task);
@@ -405,8 +407,8 @@ bool isr_message_request(int cons_task, int cons_addr, int prod_task)
 				} else {
 					/* Send through NoC */
 					// puts("Message found. Sending through NoC.\n");
-					// printf("Sending DELIVERY from %x to %x\n", prod_task, cons_task);
 					opipe_send(opipe, prod_task, cons_addr);
+					// printf("* %x->%x D\n", prod_task, cons_task);
 					tcb_destroy_opipe(prod_tcb);
 				}
 
@@ -507,6 +509,7 @@ bool isr_data_available(int cons_task, int prod_task, int prod_addr)
 		tl_set(&msgreq, cons_task, MMR_DMNI_ADDRESS);
 
 		tl_send_msgreq(&msgreq, prod_task, prod_addr);
+		// printf("* %x->%x R\n", cons_task, prod_task);
 	} else {
 		/* Insert the packet received */
 		tcb_t *cons_tcb = tcb_find(cons_task);
