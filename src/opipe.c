@@ -71,6 +71,8 @@ void opipe_send(opipe_t *opipe, int producer_task, int consumer_addr)
 	size_t align_size = (opipe->size + 3) & ~3;
 
 	dmni_send(packet, opipe->buf, align_size >> 2, true);
+
+	MMR_DBG_REM_PIPE = (producer_task << 16) | (opipe->consumer_task & 0xFFFF);
 }
 
 int opipe_get_cons_task(opipe_t *opipe)

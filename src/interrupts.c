@@ -357,6 +357,7 @@ bool isr_message_request(int cons_task, int cons_addr, int prod_task)
 				// puts("Message not found. Inserting message request.\n");
 				list_t *msgreqs = tcb_get_msgreqs(prod_tcb);
 				tl_emplace_back(msgreqs, cons_task, cons_addr);
+				MMR_DBG_ADD_REQ = (prod_task << 16) | (cons_task & 0xFFFF);
 			} else {	/* Message found */
 				if(cons_addr == MMR_DMNI_ADDRESS){
 					/* Message Request came from NoC but the consumer migrated to this address */
@@ -394,6 +395,7 @@ bool isr_message_request(int cons_task, int cons_addr, int prod_task)
 					}
 
 					opipe_pop(opipe);
+					MMR_DBG_REM_PIPE = (prod_task << 16) | (cons_task & 0xFFFF);
 					tcb_destroy_opipe(prod_tcb);
 
 					/* Release consumer task */
@@ -528,6 +530,7 @@ bool isr_data_available(int cons_task, int prod_task, int prod_addr)
 			/* Insert the packet to TCB */
 			list_t *davs = tcb_get_davs(cons_tcb);
 			tl_t *dav = tl_emplace_back(davs, prod_task, prod_addr);
+			MMR_DBG_ADD_DAV = (prod_task << 16) | (cons_task & 0xFFFF);
 			if(dav == NULL){
 				puts("FATAL");
 				while(true);

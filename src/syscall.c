@@ -262,6 +262,7 @@ int sys_writepipe(tcb_t *tcb, void *buf, size_t size, int cons_task, bool sync)
 
 				/* Remove the message request from buffer */
 				tl_remove(msgreqs, request);
+				MMR_DBG_REM_REQ = (prod_task << 16) | (cons_task & 0xFFFF);
 
 				/* Release consumer task */
 				sched_t *sched = tcb_get_sched(cons_tcb);
@@ -317,6 +318,7 @@ int sys_writepipe(tcb_t *tcb, void *buf, size_t size, int cons_task, bool sync)
 			
 			/* Remove the message request from buffer */
 			tl_remove(msgreqs, request);
+			MMR_DBG_REM_REQ = (prod_task << 16) | (cons_task & 0xFFFF);
 		}
 	} else if(tcb_get_opipe(tcb) == NULL){
 		/* Pipe is free */
@@ -335,6 +337,7 @@ int sys_writepipe(tcb_t *tcb, void *buf, size_t size, int cons_task, bool sync)
 					/* Insert DATA_AV to the consumer TCB */
 					list_t *davs = tcb_get_davs(cons_tcb);
 					tl_t *dav = tl_emplace_back(davs, prod_task, MMR_DMNI_ADDRESS);
+					MMR_DBG_ADD_DAV = (prod_task << 16) | (cons_task & 0xFFFF);
 
 					if(dav == NULL){
 						puts("ERROR: could not allocate memory for DAV entry");
@@ -486,6 +489,7 @@ int sys_readpipe(tcb_t *tcb, void *buf, size_t size, int prod_task, bool sync)
 			// putsv("Message length is ", msg->size);
 			// putsv("First word is ", msg->message[0]);
 			int result = opipe_transfer(pending, buf, size);
+			MMR_DBG_REM_PIPE = (prod_task << 16) | (cons_task & 0xFFFF);
 
 			if(result <= 0){
 				puts("ERROR: could not read from pipe");
@@ -493,17 +497,20 @@ int sys_readpipe(tcb_t *tcb, void *buf, size_t size, int prod_task, bool sync)
 			}
 
 			opipe_pop(pending);
+			MMR_DBG_REM_PIPE = (prod_task << 16) | (cons_task & 0xFFFF);
 			pmsg_remove(pending);
 
 			/* Remove pending DATA_AV */
 			list_t *davs = tcb_get_davs(tcb);
 			tl_t *dav = list_get_data(list_front(davs));
 			tl_remove(davs, dav);
+			MMR_DBG_REM_DAV = (prod_task << 16) | (cons_task & 0xFFFF);
 
 			/* Add a new data available if kernel has message to this task */
 			if(pmsg_find(cons_task) != NULL){
 				/* Add a new to the last position of the FIFO */
 				tl_emplace_back(davs, prod_task, prod_addr);
+				MMR_DBG_ADD_DAV = (prod_task << 16) | (cons_task & 0xFFFF);
 			}
 
 			return size;
@@ -523,11 +530,13 @@ int sys_readpipe(tcb_t *tcb, void *buf, size_t size, int prod_task, bool sync)
 				/* Stores the request into the message request table */
 				list_t *msgreqs = tcb_get_msgreqs(prod_tcb);
 				tl_emplace_back(msgreqs, cons_task, MMR_DMNI_ADDRESS);
+				MMR_DBG_ADD_REQ = (prod_task << 16) | (cons_task & 0xFFFF);
 			} else {
 				/* Message was found in pipe, writes to the consumer page address (local producer) */
 				buf = (void*)((unsigned)buf | (unsigned)tcb_get_offset(tcb));
 
 				int result = opipe_transfer(opipe, buf, size);
+				MMR_DBG_REM_PIPE = (prod_task << 16) | (cons_task & 0xFFFF);
 
 				if(result <= 0){
 					puts("ERROR: could not read from pipe");
@@ -535,6 +544,7 @@ int sys_readpipe(tcb_t *tcb, void *buf, size_t size, int prod_task, bool sync)
 				}
 
 				opipe_pop(opipe);
+				MMR_DBG_REM_PIPE = (prod_task << 16) | (cons_task & 0xFFFF);
 				tcb_destroy_opipe(prod_tcb);
 
 				sched_t *sched = tcb_get_sched(prod_tcb);
@@ -556,6 +566,7 @@ int sys_readpipe(tcb_t *tcb, void *buf, size_t size, int prod_task, bool sync)
 			list_t *davs = tcb_get_davs(tcb);
 			tl_t *dav = list_get_data(list_front(davs));
 			tl_remove(davs, dav);
+			MMR_DBG_REM_DAV = (prod_task << 16) | (cons_task & 0xFFFF);
 		}
 
 		/* Send the message request through NoC */
@@ -653,6 +664,7 @@ bool sys_kernel_writepipe(void *buf, size_t size, int cons_task, int cons_addr)
 			/* Insert the packet to TCB */
 			list_t *davs = tcb_get_davs(cons_tcb);
 			tl_emplace_back(davs, MEMPHIS_KERNEL_MSG | MMR_DMNI_ADDRESS, MMR_DMNI_ADDRESS);
+			MMR_DBG_ADD_DAV = (MMR_DMNI_ADDRESS << 16) | (cons_task & 0xFFFF);
 
 			/* If the consumer task is waiting for a DATA_AV, release it */
 			sched_t *sched = tcb_get_sched(cons_tcb);

@@ -58,15 +58,13 @@
 /* DEBUG MMR */
 #define MMR_DBG_PUTC				(*(volatile unsigned int*)0x80000000U)
 #define MMR_DBG_HALT				(*(volatile unsigned int*)0x80000004U)
-#define MMR_DBG_TASK_TERMINATED		(*(volatile unsigned int*)0x80000008U)
-#define MMR_DBG_SCHED_REPORT		(*(volatile unsigned int*)0x8000000CU)
-#define MMR_DBG_ADD_PIPE			(*(volatile unsigned int*)0x80000010U)
-#define MMR_DBG_REM_PIPE			(*(volatile unsigned int*)0x80000014U)
-#define MMR_DBG_ADD_REQ				(*(volatile unsigned int*)0x80000018U)
-#define MMR_DBG_REM_REQ				(*(volatile unsigned int*)0x8000001CU)
-#define MMR_DBG_ADD_DAV				(*(volatile unsigned int*)0x80000020U)
-#define MMR_DBG_REM_DAV				(*(volatile unsigned int*)0x80000024U)
-#define MMR_DBG_SLACK_TIME_MON		(*(volatile unsigned int*)0x80000028U)
+#define MMR_DBG_SCHED_REPORT		(*(volatile unsigned int*)0x80000010U)
+#define MMR_DBG_ADD_PIPE			(*(volatile unsigned int*)0x80000020U)
+#define MMR_DBG_REM_PIPE			(*(volatile unsigned int*)0x80000024U)
+#define MMR_DBG_ADD_REQ				(*(volatile unsigned int*)0x80000030U)
+#define MMR_DBG_REM_REQ				(*(volatile unsigned int*)0x80000034U)
+#define MMR_DBG_ADD_DAV				(*(volatile unsigned int*)0x80000040U)
+#define MMR_DBG_REM_DAV				(*(volatile unsigned int*)0x80000044U)
 
 enum PLIC_IE {
 	PLIC_IE_NONE = 0x1,

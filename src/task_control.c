@@ -160,8 +160,6 @@ void tcb_remove(tcb_t *tcb)
 	if(entry != NULL)
 		list_remove(&_tcbs, entry);
 
-	MMR_DBG_TASK_TERMINATED = tcb->id;
-
 	free(tcb);
 }
 
