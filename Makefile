@@ -17,7 +17,7 @@ INCMEMPHIS = $(LIBMEMPHISDIR)/include
 INCMUTILS = $(LIBUTILSDIR)/include
 
 CFLAGS  = -march=rv32im -mabi=ilp32 -Os -fdata-sections -ffunction-sections -flto -Wall -std=c11 -I$(INCDIR) -I$(INCMEMPHIS) -I$(INCMUTILS) -I$(HALDIR)
-LDFLAGS = --specs=nano.specs -march=rv32im -mabi=ilp32 -nostartfiles -Wl,--section-start=".init"=0,--section-start=".rodata=01000000",--gc-sections,-flto -L../libmutils -lmutils
+LDFLAGS = --specs=nano.specs -T maestro.ld -march=rv32im -mabi=ilp32 -nostartfiles -Wl,--gc-sections,-flto -L../libmutils -lmutils
 
 CCSRC = $(wildcard $(SRCDIR)/*.c) $(wildcard $(HALDIR)/*.c)
 CCOBJ = $(patsubst %.c, %.o, $(CCSRC))
