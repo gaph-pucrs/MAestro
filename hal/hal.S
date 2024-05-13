@@ -1,5 +1,5 @@
 ##
-# MA-Memphis
+# MAestro
 # @file hal.s
 #
 # @author Angelo Elias Dalzotto (angelo.dalzotto@edu.pucrs.br)

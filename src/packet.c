@@ -1,5 +1,5 @@
 /**
- * MA-Memphis
+ * MAestro
  * @file packet.c
  *
  * @author Marcelo Ruaro (marcelo.ruaro@acad.pucrs.br)

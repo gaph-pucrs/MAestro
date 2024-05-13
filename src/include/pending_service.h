@@ -1,5 +1,5 @@
 /**
- * MA-Memphis
+ * MAestro
  * @file pending_service.h
  *
  * @author Marcelo Ruaro (marcelo.ruaro@acad.pucrs.br)

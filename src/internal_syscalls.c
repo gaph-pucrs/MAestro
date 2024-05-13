@@ -1,5 +1,5 @@
 /**
- * MA-Memphis
+ * MAestro
  * @file internal_syscalls.c
  *
  * @author Angelo Elias Dalzotto (angelo.dalzotto@edu.pucrs.br)
@@ -8,7 +8,7 @@
  * 
  * @date June 2022
  * 
- * @brief Internal syscalls for newlib in Memphis kernel
+ * @brief Internal syscalls for newlib in MAestro kernel
  */
 
 #include <errno.h>

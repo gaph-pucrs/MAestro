@@ -1,5 +1,5 @@
 /**
- * MA-Memphis
+ * MAestro
  * @file task_location.c
  * 
  * @author Angelo Elias Dal Zotto (angelo.dalzotto@edu.pucrs.br)

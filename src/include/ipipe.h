@@ -1,5 +1,5 @@
 /**
- * MA-Memphis
+ * MAestro
  * @file ipipe.h
  *
  * @author Angelo Elias Dalzotto (angelo.dalzotto@edu.pucrs.br)

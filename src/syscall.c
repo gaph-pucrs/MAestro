@@ -1,5 +1,5 @@
 /**
- * MA-Memphis
+ * MAestro
  * @file syscall.c
  *
  * @author Angelo Elias Dalzotto (angelo.dalzotto@edu.pucrs.br)

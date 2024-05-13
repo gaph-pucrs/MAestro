@@ -1,5 +1,5 @@
 /**
- * MA-Memphis
+ * MAestro
  * @file task_scheduler.c
  *
  * @author Marcelo Ruaro (marcelo.ruaro@acad.pucrs.br)

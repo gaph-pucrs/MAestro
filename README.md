@@ -1,13 +1,13 @@
 # MAestro
 
-MAestro is the operating system kernel for [MA-Memphis](https://github.com/gaph-pucrs/MA-Memphis).
+MAestro is the operating system kernel for [Memphis-V](https://github.com/gaph-pucrs/Memphis-5) [MA-Memphis](https://github.com/gaph-pucrs/MA-Memphis).
 
 It includes multiprogramming capabilities, scheduling, message-passing drivers for data and broadcast NoC, and some
 POSIX system calls.
 
 ## Installation
 
-Currently, MA-Memphis supports RISC-V cores simulated in Linux hosts.
+Currently, MAestro supports RISC-V cores.
 
 ### Pre-requisites
 

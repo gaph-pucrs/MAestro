@@ -1,5 +1,5 @@
 /**
- * MA-Memphis
+ * MAestro
  * @file mmr.h
  * 
  * @author Unknown

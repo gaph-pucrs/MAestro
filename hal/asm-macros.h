@@ -1,3 +1,19 @@
+/**
+ * MAestro
+ * @file asm-macros.h
+ *
+ * @author Angelo Elias Dalzotto (angelo.dalzotto@edu.pucrs.br)
+ * GAPH - Hardware Design Support Group (https://corfu.pucrs.br/)
+ * PUCRS - Pontifical Catholic University of Rio Grande do Sul (http://pucrs.br/)
+ * 
+ * @date May 2024
+ * 
+ * @brief Macros for Assembly/C interoperation.
+ * 
+ * @details
+ * Based on https://embdev.net/topic/153828
+ */
+
 #pragma once
 
 #ifdef __ASSEMBLY__

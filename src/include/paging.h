@@ -1,5 +1,5 @@
 /**
- * MA-Memphis
+ * MAestro
  * @file paging.h
  *
  * @author Angelo Elias Dal Zotto (angelo.dalzotto@edu.pucrs.br)
@@ -8,7 +8,7 @@
  * 
  * @date August 2022
  *
- * @brief Memphis paging control
+ * @brief MAestro paging control
  */
 
 #pragma once

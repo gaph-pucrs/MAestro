@@ -1,5 +1,5 @@
 /**
- * MA-Memphis
+ * MAestro
  * @file application.h
  *
  * @author Angelo Elias Dal Zotto (angelo.dalzotto@edu.pucrs.br)
