@@ -415,3 +415,15 @@ ecall_return:
 	csrrw	 sp, mscratch, sp	# Swap back kernel sp with task sp, faster than loading from memory
 
 	mret
+
+.globl _hal_enable_mti
+_hal_enable_mti:
+	li		t0, 0x80
+	csrs	mie, t0
+	ret
+
+.globl _hal_disable_mti
+_hal_disable_mti:
+	li		t0, 0x80
+	csrc	mie, t0
+	ret

@@ -80,6 +80,9 @@ ENUM_END(hal_exc_e)
 /* Forward Declaration */
 typedef struct _tcb tcb_t;
 
+void _hal_enable_mti();
+void _hal_disable_mti();
+
 /**
  * @brief Handles an exception
  * 

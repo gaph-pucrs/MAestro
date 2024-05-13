@@ -88,6 +88,11 @@ sched_t *sched_emplace_back(tcb_t *tcb)
 
 	tcb_set_sched(tcb, sched);
 
+	if (list_get_size(&_scheds) > 1) {
+		// printf("Enabling MTI\n");
+		_hal_enable_mti();
+	}
+
 	return sched;
 }
 
@@ -108,6 +113,11 @@ void sched_remove(sched_t *sched)
 		list_remove(&_scheds, entry);
 
 	free(sched);
+
+	if (list_get_size(&_scheds) <= 1){
+		// printf("Disabling MTI\n");
+		_hal_disable_mti();
+	}
 }
 
 tcb_t *sched_get_current_tcb()
