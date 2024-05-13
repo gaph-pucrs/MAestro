@@ -148,7 +148,7 @@ void tcb_abort_task(tcb_t *tcb)
 void tcb_remove(tcb_t *tcb)
 {
 	/* Clear task from monitor tables */
-	// llm_clear_table(tcb->id & 0xFFFF);
+	llm_clear_table(tcb->id & 0xFFFF);
 
 	app_derefer(tcb->app);
 
