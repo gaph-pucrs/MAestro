@@ -18,3 +18,10 @@ Currently, MAestro supports RISC-V cores.
 
 Run `make`.
 It should produce `kernel.{elf, bin, lst, txt}`
+
+## Acknowledgements
+
+* Scheduler
+```
+Ruaro, M., and Moraes, F. G. (2016). Dynamic real-time scheduler for large-scale MPSoCs. In Proceedings of the Great Lakes Symposium on VLSI, pages 341-346.
+```
