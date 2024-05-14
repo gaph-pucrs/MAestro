@@ -9,15 +9,22 @@ OBJCOPY = riscv64-elf-objcopy
 
 SRCDIR = src
 INCDIR = $(SRCDIR)/include
+HEADERS = $(wildcard $(INCDIR)/*.h)
+
 HALDIR = hal
+HDRHAL = $(wildcard $(HALDIR)/*.h)
 
-LIBMEMPHISDIR = ../libmemphis/src
-LIBUTILSDIR = ../libmutils/src
-INCMEMPHIS = $(LIBMEMPHISDIR)/include
-INCMUTILS = $(LIBUTILSDIR)/include
+DIRMEMPHIS = ../libmemphis
+INCMEMPHIS = $(DIRMEMPHIS)/src/include
+HDRMEMPHIS = $(wildcard $(DIRMEMPHIS)/*.h) $(wildcard $(DIRMEMPHIS)/**/*.h)
 
-CFLAGS  = -march=rv32im -mabi=ilp32 -Os -fdata-sections -ffunction-sections -flto -Wall -std=c11 -I$(INCDIR) -I$(INCMEMPHIS) -I$(INCMUTILS) -I$(HALDIR)
-LDFLAGS = --specs=nano.specs -T maestro.ld -march=rv32im -mabi=ilp32 -nostartfiles -Wl,--gc-sections,-flto -L../libmutils -lmutils
+DIRMUTILS = ../libmutils
+INCMUTILS = $(DIRMUTILS)/src/include
+HDRMUTILS = $(wildcard $(DIRMUTILS)/*.h) $(wildcard $(DIRMUTILS)/**/*.h)
+LIBMUTILS = $(DIRMUTILS)/libmutils.a
+
+CFLAGS  = -march=rv32im -mabi=ilp32 -Os -fdata-sections -ffunction-sections -flto -Wall -std=c11 -I$(INCDIR) -I$(HALDIR) -I$(INCMEMPHIS) -I$(INCMUTILS)
+LDFLAGS = --specs=nano.specs -T maestro.ld -march=rv32im -mabi=ilp32 -nostartfiles -Wl,--gc-sections,-flto -L$(DIRMUTILS) -lmutils
 
 CCSRC = $(wildcard $(SRCDIR)/*.c) $(wildcard $(HALDIR)/*.c)
 CCOBJ = $(patsubst %.c, %.o, $(CCSRC))
@@ -35,23 +42,23 @@ i$(TARGET).bin: $(TARGET).elf
 	@printf "${RED}Generating %s...${NC}\n" "$@"
 	@$(OBJCOPY) $< $@ -O binary -j .init -j .text
 
-$(TARGET).elf: $(CCOBJ) $(ASOBJ)
+$(TARGET).elf: $(CCOBJ) $(ASOBJ) $(LIBMUTILS)
 	@printf "${RED}Linking %s...${NC}\n" "$@"
-	@$(CC) $^ -Wl,-Map=$(TARGET).map -N -o $@ $(LDFLAGS)
+	@$(CC) $(CCOBJ) $(ASOBJ) -Wl,-Map=$(TARGET).map -N -o $@ $(LDFLAGS)
 
 $(TARGET).lst: $(TARGET).elf
 	@printf "${RED}Generating %s...${NC}\n" "$@"
 	@$(OBJDUMP) -S $< > $@
 
-$(SRCDIR)/%.o: $(SRCDIR)/%.c
+$(SRCDIR)/%.o: $(SRCDIR)/%.c $(HEADERS) $(HDRMEMPHIS) $(HDRMUTILS) $(HDRHAL)
 	@printf "${RED}Compiling %s...${NC}\n" "$<"
 	@$(CC) -c $< -o $@ $(CFLAGS)
 
-$(HALDIR)/%.o: $(HALDIR)/%.S
+$(HALDIR)/%.o: $(HALDIR)/%.S $(HDRHAL)
 	@printf "${RED}Assemblying %s...${NC}\n" "$<"
 	@$(CC) -c $< -o $@ $(CFLAGS) -march=rv32im_zicsr -D__ASSEMBLY__
 
-$(HALDIR)/%.o: $(HALDIR)/%.c
+$(HALDIR)/%.o: $(HALDIR)/%.c $(HEADERS) $(HDRMEMPHIS) $(HDRMUTILS) $(HDRHAL)
 	@printf "${RED}Compiling %s...${NC}\n" "$<"
 	@$(CC) -c $< -o $@ $(CFLAGS)
 
