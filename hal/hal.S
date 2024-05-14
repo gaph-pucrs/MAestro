@@ -195,7 +195,7 @@ intr_handler:
 	sw		 s1,  (HAL_REG_S1*4)(s0)
 	sw		 a0,  (HAL_REG_A0*4)(s0)	# a0 was not saved before
 	sw		 s2,  (HAL_REG_S2*4)(s0)
-	sw		 s3,  (HAL_REG_S4*4)(s0)
+	sw		 s3,  (HAL_REG_S3*4)(s0)
 	sw		 s4,  (HAL_REG_S4*4)(s0)
 	sw		 s5,  (HAL_REG_S5*4)(s0)
 	sw		 s6,  (HAL_REG_S6*4)(s0)
