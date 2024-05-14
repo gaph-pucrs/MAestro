@@ -529,7 +529,6 @@ int sys_readpipe(tcb_t *tcb, void *buf, size_t size, int prod_task, bool sync)
 
 			if(prod_tcb == NULL){
 				printf("ERROR: task %d could not find producer TCB %d\n", cons_task, prod_task);
-				MMR_DBG_HALT = 1;
 				return -EBADMSG;
 			}
 
