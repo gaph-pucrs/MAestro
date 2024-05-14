@@ -247,3 +247,12 @@ void sched_report_interruption();
  * @param id ID of the scheduled task
  */
 void sched_report(int id);
+
+/**
+ * @brief Gets if the scheduler is enabled
+ * 
+ * @details The scheduler is disabled when a single task is running
+ * 
+ * @return bool True if scheduler is enabled
+*/
+bool sched_enabled();

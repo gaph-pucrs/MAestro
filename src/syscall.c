@@ -131,25 +131,19 @@ tcb_t *sys_syscall(
 	tcb_inc_pc(current, 4);
 
 	/* Schedule if timer has passed */
-	/**
-	 * @todo
-	 * Create a function to get IRQ status (MIE & MIP)
-	 */
-	// schedule_after_syscall |= (MMR_IRQ_STATUS & MMR_IRQ_MASK & IRQ_SCHEDULER);
+	schedule_after_syscall |= (sched_enabled() && MMR_RTC_MTIMECMP >= MMR_RTC_MTIME);
 	if(schedule_after_syscall){
 		sched_run();
-		// printf("Scheduled %p\n", sched_get_current_tcb());
+		// printf("Scheduled %d\n", tcb_get_id(current));
 		return sched_get_current_tcb();
 	}
 
-	// printf("Scheduled %p\n", sched_get_current_tcb());
+	// printf("Scheduled %d\n", tcb_get_id(current));
 	return current;
 }
 
 int sys_exit(tcb_t *tcb, int status)
 {
-	printf("Task id %d terminated with status %d\n", tcb_get_id(tcb), status);
-
 	schedule_after_syscall = true;
 
 	if(tcb_get_opipe(tcb) != NULL){
@@ -159,6 +153,8 @@ int sys_exit(tcb_t *tcb, int status)
 		sched_set_wait_msgreq(sched);
 		return -EAGAIN;
 	}
+
+	printf("Task id %d terminated with status %d\n", tcb_get_id(tcb), status);
 
 	tcb_terminate(tcb);
 	task_terminated = true;
@@ -263,6 +259,9 @@ int sys_writepipe(tcb_t *tcb, void *buf, size_t size, int cons_task, bool sync)
 					return -EBADMSG;
 				}
 
+				MMR_DBG_ADD_PIPE = (prod_task << 16) | (cons_task & 0xFFFF);
+				MMR_DBG_REM_PIPE = (prod_task << 16) | (cons_task & 0xFFFF);
+
 				/* Remove the message request from buffer */
 				tl_remove(msgreqs, request);
 				MMR_DBG_REM_REQ = (prod_task << 16) | (cons_task & 0xFFFF);
@@ -365,6 +364,11 @@ int sys_writepipe(tcb_t *tcb, void *buf, size_t size, int cons_task, bool sync)
 		/* Please use SSend to send Kernel/Peripheral messages or it can be stuck in pipe forever */
 		/* Store message in Pipe. Will be sent when a REQUEST is received */
 		opipe_t *opipe = tcb_create_opipe(tcb);
+
+		if (opipe == NULL) {
+			printf("ERROR: not enough memory for pipe\n");
+			return -ENOMEM;
+		}
 
 		int result = opipe_push(opipe, buf, size, prod_task, cons_task);
 
@@ -492,12 +496,14 @@ int sys_readpipe(tcb_t *tcb, void *buf, size_t size, int prod_task, bool sync)
 			// putsv("Message length is ", msg->size);
 			// putsv("First word is ", msg->message[0]);
 			int result = opipe_transfer(pending, buf, size);
-			MMR_DBG_REM_PIPE = (prod_task << 16) | (cons_task & 0xFFFF);
 
 			if(result <= 0){
 				puts("ERROR: could not read from pipe");
 				return -EBADMSG;
 			}
+
+			MMR_DBG_ADD_REQ = (prod_task << 16) | (cons_task & 0xFFFF);
+			MMR_DBG_REM_REQ = (prod_task << 16) | (cons_task & 0xFFFF);
 
 			opipe_pop(pending);
 			MMR_DBG_REM_PIPE = (prod_task << 16) | (cons_task & 0xFFFF);
@@ -522,7 +528,8 @@ int sys_readpipe(tcb_t *tcb, void *buf, size_t size, int prod_task, bool sync)
 			tcb_t *prod_tcb = tcb_find(prod_task);
 
 			if(prod_tcb == NULL){
-				puts("ERROR: PROD TCB NOT FOUND ON READPIPE");
+				printf("ERROR: task %d could not find producer TCB %d\n", cons_task, prod_task);
+				MMR_DBG_HALT = 1;
 				return -EBADMSG;
 			}
 
@@ -539,12 +546,14 @@ int sys_readpipe(tcb_t *tcb, void *buf, size_t size, int prod_task, bool sync)
 				buf = (void*)((unsigned)buf | (unsigned)tcb_get_offset(tcb));
 
 				int result = opipe_transfer(opipe, buf, size);
-				MMR_DBG_REM_PIPE = (prod_task << 16) | (cons_task & 0xFFFF);
 
 				if(result <= 0){
 					puts("ERROR: could not read from pipe");
 					return -EBADMSG;
 				}
+
+				MMR_DBG_ADD_REQ = (prod_task << 16) | (cons_task & 0xFFFF);
+				MMR_DBG_REM_REQ = (prod_task << 16) | (cons_task & 0xFFFF);
 
 				opipe_pop(opipe);
 				MMR_DBG_REM_PIPE = (prod_task << 16) | (cons_task & 0xFFFF);

@@ -534,3 +534,8 @@ void sched_report(int id)
 {
 	MMR_DBG_SCHED_REPORT = id;
 }
+
+bool sched_enabled()
+{
+	return (list_get_size(&_scheds) > 1);
+}
