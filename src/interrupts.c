@@ -101,7 +101,7 @@ tcb_t *isr_isr(unsigned status)
 			
 		} 
 	} else if(status & RISCV_MTI){
-		// puts("SCHED");
+		// printf("Sched %u\n", MMR_RTC_MTIME);
 
 		tcb_t *current = sched_get_current_tcb();
 
