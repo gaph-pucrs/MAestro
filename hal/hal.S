@@ -165,43 +165,25 @@ save_minimum:
 	csrr	t3, mscratch			# Load sp that is in mscratch
 	sw		t3, (HAL_REG_SP*4)(s0)	# Save sp to allow stack check by kernel
 
-	csrr	t4, mepc		# Load mepc, will have to save later
+	csrr	t4, mepc
+	sw		t4, (HAL_REG_PC*4)(s0)		# save mepc of interrupted instruction
 	
 	# Check if it was ecall
-	csrr	t0, mcause					# Load mcause
-	li		t1, INTR_MASK				# Bit 31 (interrupt)
-	and		t1, t1, t0					# t1 = mcause AND interrupt mask
-	bnez	t1, intr_handler			# If INTR mask is true, jump to interrupt handler
-
-	addi	t4, t4, 4
-	sw		t4, (HAL_REG_PC*4)(s0)     # save mepc of returning instruction
-
+	csrr	t5, mcause					# Load mcause
+	blt 	t5, zero, intr_handler
 	li 		t2, ECALL_MASK				# Bit 3 (ecall)
-	and 	t2, t2, t0					# t2 = mcause AND ecall mask
+	and 	t2, t2, t5					# t2 = mcause AND ecall mask
 	bnez	t2, ecall_handler			# If ECALL mask is true, jump to ecall handler
 	
-	# If its neither interrupt not ecall, it is exception
-	# We can lose the context here.
-	# For now, all exceptions will be fatal.
-	csrr	 a0, mcause
-	csrr	 a1, mtval
-	csrr	 a2, mepc
-	
-	jal hal_exception_handler
-	# It will return the next scheduled task
-
-	j restore_complete
-
 intr_handler:
-	# An interruption breaks the task control
+	# An interruption or exception breaks the task control
 	# So it is needed to save the caller-registers, because the callee-registers 
 	# are saved by the ABI. Caller registers are already saved at this point.
 	# To ease the migration process, save ALL, and not just caller registers.
 	# Therefore, save callee registers here.
+	# It is also useful to debug an exception using C
 
 	# sp is already saved
-	sw		 t4, (HAL_REG_PC*4)(s0)  # save mepc of interrupted (not finished) instruction
-
 	lw 		 t0,  4(sp)
 	sw		 t0, (HAL_REG_GP*4)(s0) # Save gp that is in stack
 
@@ -222,6 +204,20 @@ intr_handler:
     sw		 s9,  (HAL_REG_S9*4)(s0)
 	sw		s10, (HAL_REG_S10*4)(s0)
 	sw		s11, (HAL_REG_S11*4)(s0)
+
+	li		t1, INTR_MASK		# Bit 31 (interrupt)
+	and		t1, t1, t5			# t1 = mcause AND interrupt mask
+	bnez	t1, isr_entry		# If INTR mask is true, jump to interrupt handler
+	
+	# If its neither interrupt not ecall, it is exception
+	csrr	 a0, mcause
+	csrr	 a1, mtval
+	csrr	 a2, mepc
+	
+	jal hal_exception_handler
+	# It will return the next scheduled task
+
+	j restore_complete
 
 isr_entry:
 	# JUMP TO INTERRUPT SERVICE ROUTINE WITH ARGS

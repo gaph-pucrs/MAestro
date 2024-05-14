@@ -415,3 +415,18 @@ size_t tcb_size();
  * @return int 0 if success, EFAULT if destroyed a non-management TCB
  */
 int tcb_destroy_management(tcb_t *requester);
+
+/**
+ * @brief Increments the program counter
+ * 
+ * @param tcb TCB to increment the PC
+ * @param inc Increment value
+*/
+void tcb_inc_pc(tcb_t *tcb, unsigned inc);
+
+/**
+ * @brief Dumps the registers of a TCB
+ * 
+ * @param tcb Pointer to the TCB
+*/
+void tcb_dump_regs(tcb_t *tcb);

@@ -127,6 +127,9 @@ tcb_t *sys_syscall(
 		tcb_set_ret(current, ret);
 	}
 
+	/* Return from ecall */
+	tcb_inc_pc(current, 4);
+
 	/* Schedule if timer has passed */
 	/**
 	 * @todo

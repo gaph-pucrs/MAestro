@@ -381,3 +381,42 @@ int tcb_destroy_management(tcb_t *requester)
 
 	return err ? EFAULT : 0;	
 }
+
+void tcb_inc_pc(tcb_t *tcb, unsigned inc)
+{
+	tcb->pc += inc;
+}
+
+void tcb_dump_regs(tcb_t *tcb)
+{
+	printf("ra  =%x\n", tcb->registers[HAL_REG_RA]);
+	printf("sp  =%x\n", tcb->registers[HAL_REG_SP]);
+	printf("gp  =%x\n", tcb->registers[HAL_REG_GP]);
+	printf(" t0 =%x\n", tcb->registers[HAL_REG_T0]);
+	printf(" t1 =%x\n", tcb->registers[HAL_REG_T1]);
+	printf(" t2 =%x\n", tcb->registers[HAL_REG_T2]);
+	printf(" s0 =%x\n", tcb->registers[HAL_REG_S0]);
+	printf(" s1 =%x\n", tcb->registers[HAL_REG_S1]);
+	printf(" a0 =%x\n", tcb->registers[HAL_REG_A0]);
+	printf(" a1 =%x\n", tcb->registers[HAL_REG_A1]);
+	printf(" a2 =%x\n", tcb->registers[HAL_REG_A2]);
+	printf(" a3 =%x\n", tcb->registers[HAL_REG_A3]);
+	printf(" a4 =%x\n", tcb->registers[HAL_REG_A4]);
+	printf(" a5 =%x\n", tcb->registers[HAL_REG_A5]);
+	printf(" a6 =%x\n", tcb->registers[HAL_REG_A6]);
+	printf(" a7 =%x\n", tcb->registers[HAL_REG_A7]);
+	printf(" s2 =%x\n", tcb->registers[HAL_REG_S2]);
+	printf(" s3 =%x\n", tcb->registers[HAL_REG_S3]);
+	printf(" s4 =%x\n", tcb->registers[HAL_REG_S4]);
+	printf(" s5 =%x\n", tcb->registers[HAL_REG_S5]);
+	printf(" s6 =%x\n", tcb->registers[HAL_REG_S6]);
+	printf(" s7 =%x\n", tcb->registers[HAL_REG_S7]);
+	printf(" s8 =%x\n", tcb->registers[HAL_REG_S8]);
+	printf(" s9 =%x\n", tcb->registers[HAL_REG_S9]);
+	printf(" s10=%x\n", tcb->registers[HAL_REG_S10]);
+	printf(" s11=%x\n", tcb->registers[HAL_REG_S11]);
+	printf(" t3 =%x\n", tcb->registers[HAL_REG_T3]);
+	printf(" t4 =%x\n", tcb->registers[HAL_REG_T4]);
+	printf(" t5 =%x\n", tcb->registers[HAL_REG_T5]);
+	printf(" t6 =%x\n", tcb->registers[HAL_REG_T6]);
+}

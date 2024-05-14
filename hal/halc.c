@@ -70,6 +70,7 @@ tcb_t *hal_exception_handler(unsigned cause, unsigned value, unsigned pc)
 	tcb_t *current = sched_get_current_tcb();
 	if(current){
 		printf("Task id %d aborted with cause %d\n", tcb_get_id(current), cause);
+		tcb_dump_regs(current);
 		tcb_abort_task(current);
 		sched_run();
 		return sched_get_current_tcb();
