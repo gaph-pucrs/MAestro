@@ -58,6 +58,7 @@
 /* DEBUG MMR */
 #define MMR_DBG_PUTC				(*(volatile unsigned int*)0x80000000U)
 #define MMR_DBG_HALT				(*(volatile unsigned int*)0x80000004U)
+#define MMR_DBG_TERMINATE			(*(volatile unsigned int*)0x80000008U)
 #define MMR_DBG_SCHED_REPORT		(*(volatile unsigned int*)0x80000010U)
 #define MMR_DBG_ADD_PIPE			(*(volatile unsigned int*)0x80000020U)
 #define MMR_DBG_REM_PIPE			(*(volatile unsigned int*)0x80000024U)
