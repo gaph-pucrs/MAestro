@@ -474,6 +474,7 @@ void sched_run()
 		 * @todo
 		 * Create a function to update the 64-bit timer
 		*/
+		MMR_RTC_MTIMECMPH = 0;
 		MMR_RTC_MTIMECMP = MMR_RTC_MTIME + time_slice;
 	} else {
 		current = NULL;
