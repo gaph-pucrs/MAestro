@@ -73,7 +73,7 @@ tcb_t *isr_isr(unsigned status)
 				while(1);
 			}
 
-			dmni_receive(((void*)packet) + 8, PKT_SIZE - 2);
+			dmni_receive(((void*)packet) + 4, PKT_SIZE - 1);
 
 			if(
 				(MMR_DMNI_STATUS & DMNI_STATUS_SEND_ACTIVE) && 

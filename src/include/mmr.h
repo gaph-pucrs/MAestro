@@ -40,7 +40,6 @@
 #define MMR_DMNI_HERMES_SIZE_2		(*(volatile unsigned int*)0x08000030U)
 #define MMR_DMNI_HERMES_ADDRESS		(*(volatile unsigned int*)0x08000034U)
 #define MMR_DMNI_HERMES_ADDRESS_2	(*(volatile unsigned int*)0x08000038U)
-#define MMR_DMNI_HERMES_FLITS_AVL	(*(volatile unsigned int*)0x0800003CU)
 #define MMR_DMNI_BRLITE_START		(*(volatile unsigned int*)0x08000040U)
 #define MMR_DMNI_BRLITE_SERVICE		(*(volatile unsigned int*)0x08000044U)
 #define MMR_DMNI_BRLITE_KSVC		(*(volatile unsigned int*)0x08000048U)
