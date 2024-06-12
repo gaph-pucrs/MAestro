@@ -530,7 +530,10 @@ bool isr_message_delivery(int cons_task, int prod_task, int prod_addr, size_t si
 
 			/* Verificar ECC recebido contra 'pkt' e payload[flit_cntr] */
 			/* Nesse exemplo, preciso que o ecc seja 0, 1, 2, 3         */
+			/* Calcular ECC aqui!                                       */
+			printf("ECC computado: %x %x %x %x\n", 0, 1, 2, 3);
 			if (ecc[0] != 0 || ecc[1] != 1 || ecc[2] != 2 || ecc[3] != 3) {
+				puts("WARN: ECC computado != recebido!");
 				tl_t nack;
 				tl_set(&nack, cons_task, MMR_NI_CONFIG);
 				tl_send_nack(&nack, prod_task, prod_addr);

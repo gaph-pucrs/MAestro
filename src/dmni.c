@@ -14,6 +14,7 @@
 #include "dmni.h"
 
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "mmr.h"
 
@@ -118,4 +119,6 @@ void dmni_set_ecc(packet_t *packet, int *payload, size_t flit_cnt)
 		payload[flit_cnt+2] = 2;
 		payload[flit_cnt+3] = 3;
 	}
+
+	printf("ECC enviado: %x %x %x %x\n", payload[flit_cnt], payload[flit_cnt+1], payload[flit_cnt+2], payload[flit_cnt+3]);
 }
