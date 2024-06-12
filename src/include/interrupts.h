@@ -80,10 +80,12 @@ bool isr_message_request(int cons_task, int cons_addr, int prod_task);
  * @param prod_addr Address of the producer task
  * @param size Size of the message received
  * @param pkt_payload_size Size of the packet payload in flits
+ * @param with_ecc If the message has ECC
+ * @param pkt Pointer to the packet to compute ECC
  * 
  * @return True if the scheduler should be called
  */
-bool isr_message_delivery(int cons_task, int prod_task, int prod_addr, size_t size, unsigned pkt_payload_size);
+bool isr_message_delivery(int cons_task, int prod_task, int prod_addr, size_t size, unsigned pkt_payload_size, bool with_ecc, packet_t *pkt);
 
 /**
  * @brief Handles a data available packet

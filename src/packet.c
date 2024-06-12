@@ -60,7 +60,7 @@ packet_t *pkt_slot_get()
 	}
 }
 
-void pkt_set_message_delivery(packet_t *packet, int consumer_addr, int producer_task, int consumer_task, size_t size)
+void pkt_set_message_delivery(packet_t *packet, int consumer_addr, int producer_task, int consumer_task, size_t size, bool with_ecc)
 {
 	packet->header = consumer_addr;
 	packet->service = MESSAGE_DELIVERY;
@@ -68,6 +68,7 @@ void pkt_set_message_delivery(packet_t *packet, int consumer_addr, int producer_
 	packet->consumer_task = consumer_task;
 	packet->msg_length = size;
 	packet->insert_request = MMR_NI_CONFIG;
+	packet->with_ecc = with_ecc;
 }
 
 void pkt_set_migration_pipe(packet_t *packet, int addr, int producer_task, int consumer_task, int size)

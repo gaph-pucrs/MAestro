@@ -159,8 +159,9 @@ int sys_exit(tcb_t *tcb, int status)
 int sys_writepipe(tcb_t *tcb, void *buf, size_t size, int cons_task, bool sync)
 {
 	const int prod_task = tcb_get_id(tcb);
+	const bool with_ecc = (cons_task & MEMPHIS_MSG_ECC);
 
-	if((cons_task & 0xFFFF0000) && prod_task >> 8 != 0){
+	if((cons_task & 0xF7FF0000) && prod_task >> 8 != 0){
 		puts(
 			"ERROR: Unauthorized message to kernel/peripheral from task with app id > 0"
 		);
@@ -290,7 +291,7 @@ int sys_writepipe(tcb_t *tcb, void *buf, size_t size, int cons_task, bool sync)
 			}
 
 			/* Insert the message in the pipe to avoid overwrite by task */
-			int result = opipe_push(opipe, buf, size, prod_task, cons_task);
+			int result = opipe_push(opipe, buf, size, prod_task, cons_task, with_ecc);
 
 			if(result != size){
 				puts("ERROR: not enough memory for opipe message");
@@ -356,7 +357,7 @@ int sys_writepipe(tcb_t *tcb, void *buf, size_t size, int cons_task, bool sync)
 		/* Store message in Pipe. Will be sent when a REQUEST is received */
 		opipe_t *opipe = tcb_create_opipe(tcb);
 
-		int result = opipe_push(opipe, buf, size, prod_task, cons_task);
+		int result = opipe_push(opipe, buf, size, prod_task, cons_task, with_ecc);
 
 		if(result != size){
 			puts("ERROR: not enough memory for opipe message");
@@ -425,6 +426,7 @@ int sys_readpipe(tcb_t *tcb, void *buf, size_t size, int prod_task, bool sync)
 	}
 
 	const int cons_task = tcb_get_id(tcb);
+	const bool with_ecc = (prod_task & MEMPHIS_MSG_ECC);
 
 	int prod_addr;
 	if(!sync){	/* Not synced READ must define the producer */
@@ -570,7 +572,7 @@ int sys_readpipe(tcb_t *tcb, void *buf, size_t size, int prod_task, bool sync)
 		while(true);
 	}
 	// printf("Allocated ipipe at %p\n", current->pipe_in);
-	ipipe_set(ipipe, buf, size);
+	ipipe_set(ipipe, buf, size, with_ecc);
 	// printf("Set ipipe to %p size %d\n", ipipe->buf, ipipe->size);
 
 	/* Sets task as waiting blocking its execution, it will execute again when the message is produced by a WRITEPIPE or incoming MSG_DELIVERY */

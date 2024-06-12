@@ -87,7 +87,7 @@ void tl_send_dav(tl_t *dav, int cons_task, int cons_addr)
 
 		pkt_set_data_av(packet, cons_addr, dav->task, cons_task, dav->addr);
 
-		dmni_send(packet, NULL, 0, false);
+		dmni_send(packet, NULL, 0, false, false);
 	} else {
 		bcast_t packet;
 
@@ -110,7 +110,7 @@ void tl_send_msgreq(tl_t *msgreq, int prod_task, int prod_addr)
 
 		// puts("Sending MESSAGE_REQUEST via DMNI");
 
-		dmni_send(packet, NULL, 0, false);
+		dmni_send(packet, NULL, 0, false, false);
 	} else {
 		bcast_t packet;
 

@@ -17,6 +17,7 @@
 #pragma once
 
 #include <stddef.h>
+#include <stdbool.h>
 
 static const unsigned PKT_SIZE = 13;	//!<Constant Service Header size, based on the structure ServiceHeader. If you change it, please change the same define within app_injector.h
 
@@ -63,6 +64,7 @@ typedef struct _packet {
 	union {
 		unsigned code_size;
 		unsigned execution_time;
+		unsigned with_ecc;
 	};
 
 	union {
@@ -99,8 +101,9 @@ packet_t *pkt_slot_get();
  * @param producer_task ID of the producer task
  * @param consumer_task ID of the consumer task
  * @param size Message size in bytes
+ * @param with_ecc If should add ECC to the message
  */
-void pkt_set_message_delivery(packet_t *packet, int consumer_addr, int producer_task, int consumer_task, size_t size);
+void pkt_set_message_delivery(packet_t *packet, int consumer_addr, int producer_task, int consumer_task, size_t size, bool with_ecc);
 
 /**
  * @brief Sets a packet to a migration pipe format

@@ -128,7 +128,7 @@ void tm_send_text(tcb_t *tcb, int id, int addr)
 	text_size = (text_size + 3) & ~3;
 
 	void *offset = tcb_get_offset(tcb);
-	dmni_send(packet, offset, text_size >> 2, false);
+	dmni_send(packet, offset, text_size >> 2, false, false);
 }
 
 void tm_send_tcb(tcb_t *tcb, int id, int addr)
@@ -151,7 +151,7 @@ void tm_send_tcb(tcb_t *tcb, int id, int addr)
 		received
 	);
 
-	dmni_send(packet, tcb_get_regs(tcb), HAL_MAX_REGISTERS, false);
+	dmni_send(packet, tcb_get_regs(tcb), HAL_MAX_REGISTERS, false, false);
 }
 
 void tm_send_app(tcb_t *tcb, app_t *app, int id, int addr)
@@ -162,7 +162,7 @@ void tm_send_app(tcb_t *tcb, app_t *app, int id, int addr)
 
 	pkt_set_migration_app(packet, addr, id, task_cnt);
 
-	dmni_send(packet, app_get_locations(app), task_cnt, false);
+	dmni_send(packet, app_get_locations(app), task_cnt, false, false);
 }
 
 void tm_send_tl(tcb_t *tcb, list_t *list, unsigned service, int id, int addr)
@@ -186,7 +186,7 @@ void tm_send_tl(tcb_t *tcb, list_t *list, unsigned service, int id, int addr)
 
 	pkt_set_migration_tl(packet, addr, service, id, size);
 
-	dmni_send(packet, vect, (size*sizeof(tl_t)) >> 2, true);
+	dmni_send(packet, vect, (size*sizeof(tl_t)) >> 2, true, false);
 }
 
 void tm_send_opipe(tcb_t *tcb, int id, int addr)
@@ -212,7 +212,7 @@ void tm_send_opipe(tcb_t *tcb, int id, int addr)
 
 	size_t align_size = (size + 3) & ~3;
 
-	dmni_send(packet, buf, align_size >> 2, true);
+	dmni_send(packet, buf, align_size >> 2, true, false);
 
 	tcb_destroy_opipe(tcb);
 }
@@ -236,6 +236,7 @@ void tm_send_stack(tcb_t *tcb, int id, int addr)
 		packet, 
 		tcb_get_offset(tcb) + MMR_PAGE_SIZE - stack_size, 
 		stack_size >> 2, 
+		false, 
 		false
 	);
 }
@@ -265,6 +266,7 @@ void tm_send_heap(tcb_t *tcb, int id, int addr)
 		packet, 
 		tcb_get_offset(tcb) + (unsigned)heap_start, 
 		heap_size >> 2,
+		false, 
 		false
 	);
 }
@@ -288,6 +290,7 @@ void tm_send_data_bss(tcb_t *tcb, int id, int addr)
 		packet, 
 		tcb_get_offset(tcb) + tcb_get_text_size(tcb), 
 		total_size >> 2,
+		false, 
 		false
 	);
 }
@@ -307,7 +310,7 @@ void tm_send_sched(tcb_t *tcb, int id, int addr)
 		sched_get_exec_time(sched)
 	);
 
-	dmni_send(packet, NULL, 0, false);
+	dmni_send(packet, NULL, 0, false, false);
 }
 
 void tm_abort_task(int id, int addr)

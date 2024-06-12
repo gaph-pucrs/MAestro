@@ -23,6 +23,7 @@ typedef struct _ipipe {
 	void *buf;
 	size_t size;
     bool read;
+	bool with_ecc;
 } ipipe_t;
 
 /**
@@ -38,8 +39,9 @@ void ipipe_init(ipipe_t *ipipe);
  * @param ipipe Pointer to the ipipe structure
  * @param msg Pointer to the buffer
  * @param size Allocated buffer size
+ * @param with_ecc If the message has ECC
  */
-void ipipe_set(ipipe_t *ipipe, void *msg, size_t size);
+void ipipe_set(ipipe_t *ipipe, void *msg, size_t size, bool with_ecc);
 
 /**
  * @brief Gets the input pipe size
@@ -88,3 +90,22 @@ int ipipe_receive(ipipe_t *pipe, void *offset, size_t size);
  * @param received Number of bytes received
  */
 void ipipe_set_read(ipipe_t *ipipe, unsigned received);
+
+/**
+ * @brief Checks if the message has ECC
+ * 
+ * @param ipipe Pointer to ipipe
+ * 
+ * @return true If should read ECC flits from DMNI
+ */
+bool ipipe_has_ecc(ipipe_t *ipipe);
+
+/**
+ * @brief Gets the input pipe buffer
+ * 
+ * @param ipipe Pointer to ipipe structure
+ * @param flit_cntr Pointer to store buffer size (in flits)
+ * 
+ * @return int* Pointer to input pipe buffer
+ */
+int *ipipe_get_buf(ipipe_t *ipipe, size_t *flit_cntr);

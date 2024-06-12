@@ -19,17 +19,18 @@
 #include "mmr.h"
 #include "dmni.h"
 
-int opipe_push(opipe_t *opipe, void *msg, size_t size, int prod_task, int cons_task)
+int opipe_push(opipe_t *opipe, void *msg, size_t size, int prod_task, int cons_task, bool with_ecc)
 {
 	size_t align_size = (size + 3) & ~3;
 
-	opipe->buf = malloc(align_size);
+	opipe->buf = malloc(align_size + (with_ecc ? 4*sizeof(int) : 0));
 
 	if(opipe->buf == NULL)
 		return -1;
 
 	opipe->consumer_task = cons_task;
 	opipe->size = size;
+	opipe->with_ecc = with_ecc;
 	memcpy(opipe->buf, msg, size);
 
 	size_t padding_size = align_size - size;
@@ -65,12 +66,13 @@ void opipe_send(opipe_t *opipe, int producer_task, int consumer_addr, bool free_
 		consumer_addr, 
 		producer_task, 
 		opipe->consumer_task, 
-		opipe->size
+		opipe->size,
+		opipe->with_ecc
 	);
 
 	size_t align_size = (opipe->size + 3) & ~3;
 
-	dmni_send(packet, opipe->buf, align_size >> 2, free_after);
+	dmni_send(packet, opipe->buf, align_size >> 2, free_after, opipe->with_ecc);
 }
 
 int opipe_get_cons_task(opipe_t *opipe)

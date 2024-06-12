@@ -30,7 +30,7 @@ int dmni_read(void *payload_address, size_t payload_size)
 	return MMR_DMNI_READ_FLITS;
 }
 
-void dmni_send(packet_t *packet, void *payload, size_t size, bool should_free)
+void dmni_send(packet_t *packet, void *payload, size_t size, bool should_free, bool with_ecc)
 {
 	static bool free_outbound = false;
 	static void *outbound = NULL;
@@ -48,12 +48,15 @@ void dmni_send(packet_t *packet, void *payload, size_t size, bool should_free)
 	MMR_DMNI_SIZE = PKT_SIZE;
 	MMR_DMNI_ADDRESS = (unsigned)packet;
 
-	MMR_DMNI_SIZE_2 = size;
+	MMR_DMNI_SIZE_2 = size + (with_ecc ? 4 : 0);
 	MMR_DMNI_ADDRESS_2 = (unsigned)outbound;
 
 	MMR_DMNI_OP = DMNI_READ;
 
-	pkt_set_dmni_info(packet, size);
+	pkt_set_dmni_info(packet, size + (with_ecc ? 4 : 0));
+
+	if (with_ecc)
+		dmni_set_ecc(packet, payload, size);
 
 	MMR_DMNI_START = 1;
 }
@@ -93,4 +96,26 @@ void dmni_drop_payload()
 	MMR_DMNI_START = 1;
 	while(MMR_DMNI_RECEIVE_ACTIVE);
 	// printf("Payload dropped\n");
+}
+
+void dmni_set_ecc(packet_t *packet, int *payload, size_t flit_cnt)
+{
+	/* Computar ECC para packet + payload 				  */
+	/* Como exemplo estou adicionando os dados 0, 1, 2, 3 */
+	/* Os 4 flits adicionais já estão alocados em memória */
+	/* A cada 4 mensagens com ecc eu gero um ecc inválido */
+	/* Disparando um re-envio 						      */
+	static int ecc_cnt = 0;
+	if (ecc_cnt++ % 4 == 0)
+	{
+		payload[flit_cnt  ] = 3;
+		payload[flit_cnt+1] = 2;
+		payload[flit_cnt+2] = 1;
+		payload[flit_cnt+3] = 0;
+	} else {
+		payload[flit_cnt  ] = 0;
+		payload[flit_cnt+1] = 1;
+		payload[flit_cnt+2] = 2;
+		payload[flit_cnt+3] = 3;
+	}
 }

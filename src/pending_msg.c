@@ -39,7 +39,8 @@ int pmsg_emplace_back(void *buf, size_t size, int cons_task)
 		buf, 
 		size, 
 		MEMPHIS_KERNEL_MSG | MMR_NI_CONFIG, 
-		cons_task
+		cons_task, 
+		false 
 	);
 
 	if(result != size)

@@ -23,6 +23,7 @@ typedef struct _opipe {
 	int consumer_task;
 	void *buf;
 	size_t size;
+	bool with_ecc;
 } opipe_t;
 
 /**
@@ -33,10 +34,11 @@ typedef struct _opipe {
  * @param size Size of the message to copy
  * @param prod_task Source consumer task ID
  * @param cons_task Target consumer task ID
+ * @param with_ecc If should add ECC to the message
  * 
  * @return int Number of bytes copied
  */
-int opipe_push(opipe_t *opipe, void *msg, size_t size, int prod_task, int cons_task);
+int opipe_push(opipe_t *opipe, void *msg, size_t size, int prod_task, int cons_task, bool with_ecc);
 
 /**
  * @brief Gets the buffer pointer to opipe

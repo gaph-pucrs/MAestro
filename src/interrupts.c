@@ -210,7 +210,9 @@ bool isr_handle_pkt(volatile packet_t *packet)//
 				packet->producer_task, 
 				packet->insert_request, 
 				packet->msg_length,
-				packet->payload_size
+				packet->payload_size,
+				packet->with_ecc,
+				(packet_t*)packet
 			);
 		case DATA_AV:
 			return isr_data_available(
@@ -447,7 +449,7 @@ bool isr_message_request(int cons_task, int cons_addr, int prod_task)
 	return force_sched;
 }
 
-bool isr_message_delivery(int cons_task, int prod_task, int prod_addr, size_t size, unsigned pkt_payload_size)
+bool isr_message_delivery(int cons_task, int prod_task, int prod_addr, size_t size, unsigned pkt_payload_size, bool with_ecc, packet_t *pkt)
 {
 	// puts("ISR Delivery");
 	if(cons_task & MEMPHIS_KERNEL_MSG){
@@ -510,23 +512,36 @@ bool isr_message_delivery(int cons_task, int prod_task, int prod_addr, size_t si
 		}
 		// puts("Message read from DMNI");
 
+		if (!ipipe_has_ecc(ipipe)) {
+			if (with_ecc) {
+				puts("WARN: message without ECC received with ECC. Discarding ECC.");
+				dmni_drop_payload();
+			}
+		} else {
+			// the 'with_ecc' message field is ignored
+			// reason: it could get flipped by the time it reaches the consumer
+			// therefore, the consumer flag is enough to check ECC
+			// remember to put the ECC in the producer to avoid stalling the NoC
+			int ecc[4];
+			dmni_read(ecc, 4);
+
+			size_t flit_cntr;
+			int *payload = ipipe_get_buf(ipipe, &flit_cntr);
+
+			/* Verificar ECC recebido contra 'pkt' e payload[flit_cntr] */
+			/* Nesse exemplo, preciso que o ecc seja 0, 1, 2, 3         */
+			if (ecc[0] != 0 || ecc[1] != 1 || ecc[2] != 2 || ecc[3] != 3) {
+				tl_t nack;
+				tl_set(&nack, cons_task, MMR_NI_CONFIG);
+				tl_send_nack(&nack, prod_task, prod_addr);
+				return false;
+			}
+		}
+
 		/* If message originated from other task, send ACK 			  */
 		/* Ignore ACK if message originated from Peripheral or Kernel */
 		bool send_ack = !(prod_task & (MEMPHIS_FORCE_PORT | MEMPHIS_KERNEL_MSG));
 		if (send_ack) {
-			// static int msg_cntr = 0;
-			// msg_cntr++;
-
-			// if (msg_cntr % 5 == 0) {
-			// 	/* NACK tester: every 5th message that needs ACK will NACK */
-			// 	tl_t nack;
-			// 	tl_set(&nack, cons_task, MMR_NI_CONFIG);
-			// 	tl_send_nack(&nack, prod_task, prod_addr);
-
-			// 	/* Return early and do not allow the consumer to run */
-			// 	return false;
-			// }
-			
 			tl_t ack;
 			tl_set(&ack, cons_task, MMR_NI_CONFIG);
 			tl_send_ack(&ack, prod_task, prod_addr);

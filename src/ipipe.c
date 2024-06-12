@@ -25,10 +25,11 @@ void ipipe_init(ipipe_t *ipipe)
     ipipe->read = false;
 }
 
-void ipipe_set(ipipe_t *ipipe, void *msg, size_t size)
+void ipipe_set(ipipe_t *ipipe, void *msg, size_t size, bool with_ecc)
 {
     ipipe->buf = msg;
     ipipe->size = size;
+	ipipe->with_ecc = with_ecc;
 }
 
 size_t ipipe_get_size(ipipe_t *ipipe)
@@ -94,4 +95,15 @@ void ipipe_set_read(ipipe_t *ipipe, unsigned received)
 {
 	ipipe->read = true;
 	ipipe->size = received;
+}
+
+bool ipipe_has_ecc(ipipe_t *ipipe)
+{
+	return ipipe->with_ecc;
+}
+
+int *ipipe_get_buf(ipipe_t *ipipe, size_t *flit_cntr)
+{
+	*flit_cntr = ipipe->size >> 2;
+	return ipipe->buf;
 }
