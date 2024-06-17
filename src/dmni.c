@@ -106,6 +106,9 @@ void dmni_set_ecc(packet_t *packet, int *payload, size_t flit_cnt)
 	/* Os 4 flits adicionais já estão alocados em memória */
 	/* A cada 4 mensagens com ecc eu gero um ecc inválido */
 	/* Disparando um re-envio 						      */
+
+	/* ATENÇÃO: ignorar packet[0] e packet[1] (TARGET e SIZE) */
+
 	static int ecc_cnt = 0;
 	if (ecc_cnt++ % 4 == 0)
 	{
