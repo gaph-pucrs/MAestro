@@ -526,7 +526,7 @@ bool isr_message_delivery(int cons_task, int prod_task, int prod_addr, size_t si
 			dmni_read(ecc, 4);
 
 			size_t flit_cntr;
-			int *payload = ipipe_get_buf(ipipe, &flit_cntr);
+			int *payload = (int*)((int)ipipe_get_buf(ipipe, &flit_cntr) | (int)tcb_get_offset(cons_tcb));
 
 			/* Verificar ECC recebido contra 'pkt' e payload[flit_cntr] */
 			/* Nesse exemplo, preciso que o ecc seja 0, 1, 2, 3         */
