@@ -20,9 +20,9 @@
 #define MMR_RTC_MTIMECMPH			(*(volatile unsigned int*)0x0200000CU)
 
 /* PLIC MMR */
-#define MMR_PLIC_ID					(*(volatile unsigned int*)0x04000000U)
-#define MMR_PLIC_IP					(*(volatile unsigned int*)0x04000004U)
-#define MMR_PLIC_IE					(*(volatile unsigned int*)0x04000008U)
+#define MMR_PLIC_IP					(*(volatile unsigned int*)0x04001000U)
+#define MMR_PLIC_IE					(*(volatile unsigned int*)0x04002000U)
+#define MMR_PLIC_ID					(*(volatile unsigned int*)0x04200004U)
 
 /* DMNI MMR */
 #define MMR_DMNI_STATUS				(*(volatile unsigned int*)0x08000000U)
