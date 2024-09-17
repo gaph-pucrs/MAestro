@@ -148,7 +148,7 @@ bool isr_handle_broadcast(bcast_t *packet)
 			/* Write to DMNI register the ID value */
 			return isr_clear_mon_table(task_field);
 		case ANNOUNCE_MONITOR:
-			return isr_announce_mon(task_field, addr_field);
+			return isr_announce_mon((task_field >> 8), (task_field & 0xFF), addr_field);
 		case RELEASE_PERIPHERAL:
 			return sys_release_peripheral();
 		case TASK_MIGRATION:
@@ -199,7 +199,9 @@ bool isr_handle_pkt(volatile packet_t *packet)
 				packet->producer_task, 
 				packet->insert_request, 
 				packet->msg_length,
-				packet->payload_size
+				packet->payload_size,
+				packet->source_PE,
+				packet->timestamp
 			);
 		case DATA_AV:
 			return isr_data_available(
@@ -430,7 +432,15 @@ bool isr_message_request(int cons_task, int cons_addr, int prod_task)
 	return force_sched;
 }
 
-bool isr_message_delivery(int cons_task, int prod_task, int prod_addr, size_t size, unsigned pkt_payload_size)
+bool isr_message_delivery(
+	int cons_task, 
+	int prod_task, 
+	int prod_addr, 
+	size_t size, 
+	unsigned pkt_payload_size,
+	int src_addr,
+	unsigned timestamp
+)
 {
 	// printf("D %x->%x\n", prod_task, cons_task);
 	if(cons_task & MEMPHIS_KERNEL_MSG){
@@ -486,6 +496,12 @@ bool isr_message_delivery(int cons_task, int prod_task, int prod_addr, size_t si
 			unsigned flits_to_drop = (pkt_payload_size-11);
 			dmni_drop_payload(flits_to_drop);
 		}
+
+		if (src_addr == prod_addr && (cons_task >> 8) != 0 && (prod_task >> 8) != 0) {
+			/* Only monitor if not originated from migrated producer */
+			llm_sec(timestamp, pkt_payload_size+2, src_addr, MMR_DMNI_ADDRESS, prod_task, cons_task, MMR_RTC_MTIME);
+		}
+
 		// puts("Message read from DMNI");
 
 		/* Release task to execute */
@@ -1008,9 +1024,9 @@ bool isr_clear_mon_table(int task)
 	return false;
 }
 
-bool isr_announce_mon(enum MONITOR_TYPE type, int addr)
+bool isr_announce_mon(enum MONITOR_TYPE type, int task, int addr)
 {
-	llm_set_observer(type, addr);
+	llm_set_observer(type, task, addr);
 	return false;
 }
 

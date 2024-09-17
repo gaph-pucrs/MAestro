@@ -16,6 +16,7 @@
 #include <memphis/monitor.h>
 
 typedef struct _observer {
+	int16_t task;
 	int16_t addr;
 	uint16_t dist;
 } observer_t;
@@ -29,9 +30,10 @@ void llm_init();
  * @brief Sets an observer if is nearer than the already set
  * 
  * @param type Monitoring type
+ * @param task Task received
  * @param addr Address received
  */
-void llm_set_observer(enum MONITOR_TYPE type, int addr);
+void llm_set_observer(enum MONITOR_TYPE type, int task, int addr);
 
 /**
  * @brief Clears the monitoring table of terminated/migrated task
@@ -60,3 +62,16 @@ bool llm_has_monitor(int mon_id);
  * @return false If should wait more time to monitor
  */
 void llm_rt(unsigned *last_monitored, int id, unsigned slack_time, unsigned remaining_exec_time);
+
+/**
+ * @bried Monitor security contraints
+ * 
+ * @param timestamp Timestamp of received message
+ * @param size      Size of received message
+ * @param src       Source address of received message
+ * @param dst       Destination address of received message
+ * @param prod      Producer task
+ * @param cons      Consumer task
+ * @param now       Time now
+ */
+void llm_sec(unsigned timestamp, unsigned size, int src, int dst, int prod, int cons, unsigned now);

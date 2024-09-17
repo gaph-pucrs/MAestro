@@ -777,8 +777,8 @@ int sys_mon_ptr(tcb_t *tcb, unsigned* table, enum MONITOR_TYPE type)
 		case MON_QOS:
 			MMR_DMNI_BRMON_QOS_PTR = (unsigned)table;
 			break;
-		case MON_PWR:
-			MMR_DMNI_BRMON_PWR_PTR = (unsigned)table;
+		case MON_SEC:
+			MMR_DMNI_BRMON_SEC_PTR = (unsigned)table;
 			break;
 		default:
 			return -EINVAL;

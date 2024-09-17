@@ -52,7 +52,7 @@
 #define MMR_DMNI_BRSVC_PAYLOAD		(*(volatile unsigned int*)0x08000064U)
 #define MMR_DMNI_BRMON_CLEAR		(*(volatile unsigned int*)0x08000068U)
 #define MMR_DMNI_BRMON_QOS_PTR		(*(volatile unsigned int*)0x0800006CU)
-#define MMR_DMNI_BRMON_PWR_PTR		(*(volatile unsigned int*)0x08000070U)
+#define MMR_DMNI_BRMON_SEC_PTR		(*(volatile unsigned int*)0x08000070U)
 
 /* DEBUG MMR */
 #define MMR_DBG_PUTC				(*(volatile unsigned int*)0x80000000U)
