@@ -497,7 +497,7 @@ bool isr_message_delivery(
 			dmni_drop_payload(flits_to_drop);
 		}
 
-		if (src_addr == prod_addr && (cons_task >> 8) != 0 && (prod_task >> 8) != 0) {
+		if (llm_has_monitor(MON_SEC) &&  src_addr == prod_addr && (cons_task >> 8) != 0 && (prod_task >> 8) != 0) {
 			/* Only monitor if not originated from migrated producer */
 			llm_sec(timestamp, pkt_payload_size+2, src_addr, MMR_DMNI_ADDRESS, prod_task, cons_task, MMR_RTC_MTIME);
 		}
