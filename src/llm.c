@@ -63,7 +63,7 @@ void llm_clear_table(int task_id)
 
 bool llm_has_monitor(int mon_id)
 {
-	return (_observers[MON_QOS].addr != -1);
+	return (_observers[mon_id].addr != -1);
 }
 
 void llm_rt(unsigned *last_monitored, int id, unsigned slack_time, unsigned remaining_exec_time)
