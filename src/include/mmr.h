@@ -53,6 +53,7 @@
 #define MMR_DMNI_BRMON_CLEAR		(*(volatile unsigned int*)0x08000068U)
 #define MMR_DMNI_BRMON_QOS_PTR		(*(volatile unsigned int*)0x0800006CU)
 #define MMR_DMNI_BRMON_SEC_PTR		(*(volatile unsigned int*)0x08000070U)
+#define MMR_DMNI_RCV_TIMESTAMP		(*(volatile unsigned int*)0x08000074U)
 
 /* DEBUG MMR */
 #define MMR_DBG_PUTC				(*(volatile unsigned int*)0x80000000U)
