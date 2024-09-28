@@ -92,6 +92,7 @@ void llm_sec(unsigned timestamp, unsigned size, int src, int dst, int prod, int 
 	unsigned edge = (prod << 16) | (cons & 0xFFFF);
 	unsigned latency = (now - timestamp);
 
-	unsigned msg[] = {MONITOR, timestamp, size, hops, edge, latency};
+	/* @todo Maybe it's better to use sending timestamp (timestamp instead of now) */
+	unsigned msg[] = {MONITOR, now, size, hops, edge, latency};
 	sys_kernel_writepipe(msg, sizeof(msg), _observers[MON_SEC].task, _observers[MON_SEC].addr);
 }
