@@ -892,12 +892,9 @@ int sys_halt(tl_t *tl)
 	}
 
 	tcb_t *tcb = tcb_find(tl_get_task(tl));
-	if(tcb != NULL && tcb_size() > 1){
-		/* Check if error or if it has other management tasks */
-		int ret = tcb_destroy_management(tcb);
-		if(ret == EFAULT)
-			puts("WARN: possible memory leak in non-destroyed TCB");
-	}
+	/* Check if error or if it has other management tasks */
+	if (tcb_destroy_management(tcb) == EFAULT)
+		puts("WARN: possible memory leak in non-destroyed TCB");
 
 	if(tcb != NULL){
 		/* The app and sched list should be empty when there is no task running */
