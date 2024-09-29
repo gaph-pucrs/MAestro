@@ -19,6 +19,7 @@
 #include <machine/syscall.h>
 #include <unistd.h>
 #include <errno.h>
+#include <stdlib.h>
 
 #include <memphis/services.h>
 
@@ -29,6 +30,8 @@
 #include "task_migration.h"
 #include "mmr.h"
 #include "dmni.h"
+
+extern tl_t *halter;
 
 bool schedule_after_syscall;	//!< Signals the HAL syscall to call scheduler
 bool task_terminated;
@@ -515,11 +518,11 @@ int sys_readpipe(tcb_t *tcb, void *buf, size_t size, int prod_task, bool sync)
 			tl_remove(davs, dav);
 			MMR_DBG_REM_DAV = (prod_task << 16) | (cons_task & 0xFFFF);
 
-			/* Add a new data available if kernel has message to this task */
-			if(pmsg_find(cons_task) != NULL){
-				/* Add a new to the last position of the FIFO */
-				tl_emplace_back(davs, prod_task, prod_addr);
-				MMR_DBG_ADD_DAV = (prod_task << 16) | (cons_task & 0xFFFF);
+			if (halter != NULL && pmsg_empty()) {
+				if (sys_halt(halter) == 0) {
+					free(halter);
+					halter = NULL;
+				}
 			}
 
 			return size;
@@ -644,53 +647,48 @@ bool sys_kernel_syscall(unsigned *message, int length)
 
 bool sys_kernel_writepipe(void *buf, size_t size, int cons_task, int cons_addr)
 {
-	/* Send data available only if target task hasn't received data available from this source */
-	bool send_data_av = (pmsg_find(cons_task) == NULL);
-
 	// printf("Kernel writing pending message to task %d with size %d\n", task, size);
 	/* Insert message in kernel output message buffer */
 	int result = pmsg_emplace_back(buf, size, cons_task);
 
-	if(result != size){
+	if (result != size) {
 		puts("FATAL: cant write to kernel pipe");
 		while(1);
 	}
 
-	if(send_data_av){
-		/* Check if local consumer / migrated task */
-		tcb_t *cons_tcb = NULL;
-		if(cons_addr == MMR_DMNI_ADDRESS){
-			cons_tcb = tcb_find(cons_task);
-			if(cons_tcb == NULL){
-				tl_t *tl = tm_find(cons_task);
-				if(tl == NULL){
-					puts("FATAL: task migrated not found");
-					while(true);
-				}
-				cons_addr = tl_get_addr(tl);
+	/* Check if local consumer / migrated task */
+	tcb_t *cons_tcb = NULL;
+	if(cons_addr == MMR_DMNI_ADDRESS){
+		cons_tcb = tcb_find(cons_task);
+		if(cons_tcb == NULL){
+			tl_t *tl = tm_find(cons_task);
+			if(tl == NULL){
+				puts("FATAL: task migrated not found");
+				while(true);
 			}
+			cons_addr = tl_get_addr(tl);
 		}
+	}
 
-		if(cons_tcb != NULL){
-			/* Insert the packet to TCB */
-			list_t *davs = tcb_get_davs(cons_tcb);
-			tl_emplace_back(davs, MEMPHIS_KERNEL_MSG | MMR_DMNI_ADDRESS, MMR_DMNI_ADDRESS);
-			MMR_DBG_ADD_DAV = (MMR_DMNI_ADDRESS << 16) | (cons_task & 0xFFFF);
+	if(cons_tcb != NULL){
+		/* Insert the packet to TCB */
+		list_t *davs = tcb_get_davs(cons_tcb);
+		tl_emplace_back(davs, MEMPHIS_KERNEL_MSG | MMR_DMNI_ADDRESS, MMR_DMNI_ADDRESS);
+		MMR_DBG_ADD_DAV = (MMR_DMNI_ADDRESS << 16) | (cons_task & 0xFFFF);
 
-			/* If the consumer task is waiting for a DATA_AV, release it */
-			sched_t *sched = tcb_get_sched(cons_tcb);
-			if(sched_is_waiting_dav(sched)){
-				sched_release_wait(sched);
-				return sched_is_idle();
-			}
-		} else {
-			/* Send data available to the right processor */
-			tl_t dav;
-			tl_set(&dav, MEMPHIS_KERNEL_MSG | MMR_DMNI_ADDRESS, MMR_DMNI_ADDRESS);
-
-			tl_send_dav(&dav, cons_task, cons_addr);
-			// printf("* %x->%x A\n", MEMPHIS_KERNEL_MSG | MMR_DMNI_ADDRESS, cons_task);
+		/* If the consumer task is waiting for a DATA_AV, release it */
+		sched_t *sched = tcb_get_sched(cons_tcb);
+		if(sched_is_waiting_dav(sched)){
+			sched_release_wait(sched);
+			return sched_is_idle();
 		}
+	} else {
+		/* Send data available to the right processor */
+		tl_t dav;
+		tl_set(&dav, MEMPHIS_KERNEL_MSG | MMR_DMNI_ADDRESS, MMR_DMNI_ADDRESS);
+
+		tl_send_dav(&dav, cons_task, cons_addr);
+		// printf("* %x->%x A\n", MEMPHIS_KERNEL_MSG | MMR_DMNI_ADDRESS, cons_task);
 	}
 
 	return false;
@@ -885,28 +883,16 @@ int sys_get_ctx(tcb_t *tcb, mctx_t *ctx)
 
 int sys_halt(tl_t *tl)
 {
+	if (!pmsg_empty()) {
+		puts("DEBUG: Not halting now due to pending kernel message");
+		return EAGAIN;
+	}
+
 	/* Check if there are migrated tasks in the list and halt later */
 	if(!(tm_empty() && psvc_empty())){
 		puts("DEBUG: Not halting now due to task migration");
 		return EAGAIN;
 	}
-
-	tcb_t *tcb = tcb_find(tl_get_task(tl));
-	/* Check if error or if it has other management tasks */
-	if (tcb_destroy_management(tcb) == EFAULT)
-		puts("WARN: possible memory leak in non-destroyed TCB");
-
-	if(tcb != NULL){
-		/* The app and sched list should be empty when there is no task running */
-		app_derefer(tcb_get_app(tcb));
-	}
-
-	/* Disable scheduler */
-	/**
-	 * @todo
-	 * Create a function to disable MTI in MIE register
-	 */
-	// MMR_IRQ_MASK &= ~IRQ_SCHEDULER;
 	
 	/* Inform the mapper that this PE is ready to halt */
 	int pe_halted[] = {PE_HALTED, MMR_DMNI_ADDRESS};
