@@ -13,6 +13,8 @@
 
 #pragma once
 
+#include <stdbool.h>
+
 #include "opipe.h"
 
 /**
@@ -46,3 +48,10 @@ opipe_t *pmsg_find(int cons_task);
  * @param pending Pointer to the output pipe
  */
 void pmsg_remove(opipe_t *pending);
+
+/**
+ * @brief Queries if the kernel has pending messages
+ * 
+ * @return True if pending messages
+ */
+bool pmsg_empty();

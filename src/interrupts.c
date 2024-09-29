@@ -307,14 +307,11 @@ bool isr_message_request(int cons_task, int cons_addr, int prod_task)
 
 		pmsg_remove(opipe);
 
-		/* If still pending messages to requesting task, also send a data available */
-		if(pmsg_find(cons_task) != NULL){
-			/* Send data available to the right processor */
-			tl_t dav;
-			tl_set(&dav, MEMPHIS_KERNEL_MSG | MMR_DMNI_ADDRESS, MMR_DMNI_ADDRESS);
-
-			tl_send_dav(&dav, cons_task, cons_addr);
-			// printf("* %x->%x A\n", prod_task, cons_task);
+		if (halter != NULL && pmsg_empty()) {
+			if (sys_halt(halter) == 0) {
+				free(halter);
+				halter = NULL;
+			}
 		}
 	} else {
 		// printf("Received message request from task %x to task %x\n", cons_task, prod_task);
@@ -468,7 +465,7 @@ bool isr_message_delivery(
 			while(true);
 		}
 
-		/* Update task location in case of migration */			
+		/* Update task location in case of migration */
 		if(
 			((cons_task & 0xFFFF0000) == 0) && 
 			((cons_task >> 8) == (prod_task >> 8))
@@ -1061,7 +1058,7 @@ bool isr_app_terminated(int id)
 {
 	tm_clear_app(id);
 
-	if(halter == NULL)
+	if (halter == NULL)
 		return false;
 
 	return !sys_halt(halter);
@@ -1076,5 +1073,10 @@ bool isr_halt_pe(int task, int addr)
 	halter = malloc(sizeof(tl_t));
 	tl_set(halter, task, addr);
 
-	return !sys_halt(halter);
+	if (sys_halt(halter) != 0)
+		return true;
+
+	free(halter);
+	halter = NULL;
+	return false;
 }

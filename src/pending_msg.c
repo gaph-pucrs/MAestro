@@ -78,3 +78,8 @@ void pmsg_remove(opipe_t *pending)
 
 	free(pending);
 }
+
+bool pmsg_empty()
+{
+	return list_empty(&_pmsgs);
+}
