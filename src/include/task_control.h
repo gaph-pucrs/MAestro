@@ -409,14 +409,6 @@ void tcb_set_ret(tcb_t *tcb, int ret);
 size_t tcb_size();
 
 /**
- * @brief Destroy all management task TCBs, leaving only the requester
- * 
- * @param requester TCB of the action requester
- * @return int 0 if success, EFAULT if destroyed a non-management TCB
- */
-int tcb_destroy_management(tcb_t *requester);
-
-/**
  * @brief Increments the program counter
  * 
  * @param tcb TCB to increment the PC

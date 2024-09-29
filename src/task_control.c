@@ -365,25 +365,6 @@ size_t tcb_size()
 	return list_get_size(&_tcbs);
 }
 
-int tcb_destroy_management(tcb_t *requester)
-{
-	list_entry_t *entry = list_front(&_tcbs);
-	bool err = false;
-
-	while(entry != NULL){
-		tcb_t *tcb = list_get_data(entry);
-		if(tcb != requester){
-			if(tcb->id >> 8 != 0)
-				err = true;
-
-			tcb_terminate(tcb);
-		}
-		entry = list_next(entry);
-	}
-
-	return err ? EFAULT : 0;	
-}
-
 void tcb_inc_pc(tcb_t *tcb, unsigned inc)
 {
 	tcb->pc += inc;
