@@ -23,8 +23,8 @@ INCMUTILS = $(DIRMUTILS)/src/include
 HDRMUTILS = $(wildcard $(DIRMUTILS)/*.h) $(wildcard $(DIRMUTILS)/**/*.h)
 LIBMUTILS = $(DIRMUTILS)/libmutils.a
 
-CFLAGS  = -march=rv32im -mabi=ilp32 -Os -fdata-sections -ffunction-sections -flto -Wall -std=c11 -I$(INCDIR) -I$(HALDIR) -I$(INCMEMPHIS) -I$(INCMUTILS)
-LDFLAGS = --specs=nano.specs -T maestro.ld -march=rv32im -mabi=ilp32 -nostartfiles -Wl,--gc-sections,-flto -L$(DIRMUTILS) -lmutils
+CFLAGS  = -march=rv32imac -mabi=ilp32 -Os -fdata-sections -ffunction-sections -flto -Wall -std=c11 -I$(INCDIR) -I$(HALDIR) -I$(INCMEMPHIS) -I$(INCMUTILS)
+LDFLAGS = --specs=nano.specs -T maestro.ld -march=rv32imac -mabi=ilp32 -nostartfiles -Wl,--gc-sections,-flto -L$(DIRMUTILS) -lmutils
 
 CCSRC = $(wildcard $(SRCDIR)/*.c) $(wildcard $(HALDIR)/*.c)
 CCOBJ = $(patsubst %.c, %.o, $(CCSRC))
@@ -56,7 +56,7 @@ $(SRCDIR)/%.o: $(SRCDIR)/%.c $(HEADERS) $(HDRMEMPHIS) $(HDRMUTILS) $(HDRHAL)
 
 $(HALDIR)/%.o: $(HALDIR)/%.S $(HDRHAL)
 	@printf "${RED}Assemblying %s...${NC}\n" "$<"
-	@$(CC) -c $< -o $@ $(CFLAGS) -march=rv32im_zicsr -D__ASSEMBLY__
+	@$(CC) -c $< -o $@ $(CFLAGS) -march=rv32imac_zicsr -D__ASSEMBLY__
 
 $(HALDIR)/%.o: $(HALDIR)/%.c $(HEADERS) $(HDRMEMPHIS) $(HDRMUTILS) $(HDRHAL)
 	@printf "${RED}Compiling %s...${NC}\n" "$<"
