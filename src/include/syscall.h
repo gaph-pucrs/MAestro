@@ -160,9 +160,11 @@ int sys_get_location();
 /**
  * @brief Gets the running complete task ID
  * 
+ * @param tcb Pointer to the TCB to get PID
+ * 
  * @return Task ID (with application ID)
  */
-int sys_getpid();
+int sys_getpid(tcb_t *tcb);
 
 /**
  * @brief Sends a message via broadcast
