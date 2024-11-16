@@ -148,7 +148,7 @@ bool isr_handle_broadcast(bcast_t *packet)
 			/* Write to DMNI register the ID value */
 			return isr_clear_mon_table(task_field);
 		case ANNOUNCE_MONITOR:
-			return isr_announce_mon(task_field, addr_field);
+			return isr_announce_mon((task_field >> 8), (task_field & 0xFF), addr_field);
 		case RELEASE_PERIPHERAL:
 			return sys_release_peripheral();
 		case TASK_MIGRATION:
@@ -199,7 +199,9 @@ bool isr_handle_pkt(volatile packet_t *packet)
 				packet->producer_task, 
 				packet->insert_request, 
 				packet->msg_length,
-				packet->payload_size
+				packet->payload_size,
+				packet->source_PE,
+				packet->timestamp
 			);
 		case DATA_AV:
 			return isr_data_available(
@@ -305,14 +307,11 @@ bool isr_message_request(int cons_task, int cons_addr, int prod_task)
 
 		pmsg_remove(opipe);
 
-		/* If still pending messages to requesting task, also send a data available */
-		if(pmsg_find(cons_task) != NULL){
-			/* Send data available to the right processor */
-			tl_t dav;
-			tl_set(&dav, MEMPHIS_KERNEL_MSG | MMR_DMNI_ADDRESS, MMR_DMNI_ADDRESS);
-
-			tl_send_dav(&dav, cons_task, cons_addr);
-			// printf("* %x->%x A\n", prod_task, cons_task);
+		if (halter != NULL && pmsg_empty()) {
+			if (sys_halt(halter) == 0) {
+				free(halter);
+				halter = NULL;
+			}
 		}
 	} else {
 		// printf("Received message request from task %x to task %x\n", cons_task, prod_task);
@@ -430,7 +429,15 @@ bool isr_message_request(int cons_task, int cons_addr, int prod_task)
 	return force_sched;
 }
 
-bool isr_message_delivery(int cons_task, int prod_task, int prod_addr, size_t size, unsigned pkt_payload_size)
+bool isr_message_delivery(
+	int cons_task, 
+	int prod_task, 
+	int prod_addr, 
+	size_t size, 
+	unsigned pkt_payload_size,
+	int src_addr,
+	unsigned timestamp
+)
 {
 	// printf("D %x->%x\n", prod_task, cons_task);
 	if(cons_task & MEMPHIS_KERNEL_MSG){
@@ -458,7 +465,7 @@ bool isr_message_delivery(int cons_task, int prod_task, int prod_addr, size_t si
 			while(true);
 		}
 
-		/* Update task location in case of migration */			
+		/* Update task location in case of migration */
 		if(
 			((cons_task & 0xFFFF0000) == 0) && 
 			((cons_task >> 8) == (prod_task >> 8))
@@ -486,6 +493,13 @@ bool isr_message_delivery(int cons_task, int prod_task, int prod_addr, size_t si
 			unsigned flits_to_drop = (pkt_payload_size-11);
 			dmni_drop_payload(flits_to_drop);
 		}
+
+		if (llm_has_monitor(MON_SEC) && src_addr == prod_addr && (cons_task >> 8) != 0 && (prod_task >> 8) != 0) {
+			/* Only monitor if not originated from migrated producer */
+			/* @todo RCV_TIMESTAMP can be overwritten because it is generated in a reception buffer in DMNI */
+			llm_sec(timestamp, pkt_payload_size+2, src_addr, MMR_DMNI_ADDRESS, prod_task, cons_task, MMR_DMNI_RCV_TIMESTAMP);
+		}
+
 		// puts("Message read from DMNI");
 
 		/* Release task to execute */
@@ -1008,9 +1022,9 @@ bool isr_clear_mon_table(int task)
 	return false;
 }
 
-bool isr_announce_mon(enum MONITOR_TYPE type, int addr)
+bool isr_announce_mon(enum MONITOR_TYPE type, int task, int addr)
 {
-	llm_set_observer(type, addr);
+	llm_set_observer(type, task, addr);
 	return false;
 }
 
@@ -1044,7 +1058,7 @@ bool isr_app_terminated(int id)
 {
 	tm_clear_app(id);
 
-	if(halter == NULL)
+	if (halter == NULL)
 		return false;
 
 	return !sys_halt(halter);
@@ -1059,5 +1073,10 @@ bool isr_halt_pe(int task, int addr)
 	halter = malloc(sizeof(tl_t));
 	tl_set(halter, task, addr);
 
-	return !sys_halt(halter);
+	if (sys_halt(halter) != 0)
+		return true;
+
+	free(halter);
+	halter = NULL;
+	return false;
 }

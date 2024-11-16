@@ -85,10 +85,20 @@ bool isr_message_request(int cons_task, int cons_addr, int prod_task);
  * @param prod_addr Address of the producer task
  * @param size Size of the message received
  * @param pkt_payload_size Size of the packet payload in flits
+ * @param src_addr Address of message source
+ * @param timestamp Timestamp when the message entered the NoC
  * 
  * @return True if the scheduler should be called
  */
-bool isr_message_delivery(int cons_task, int prod_task, int prod_addr, size_t size, unsigned pkt_payload_size);
+bool isr_message_delivery(
+	int cons_task, 
+	int prod_task, 
+	int prod_addr, 
+	size_t size, 
+	unsigned pkt_payload_size,
+	int src_addr,
+	unsigned timestamp
+);
 
 /**
  * @brief Handles a data available packet
@@ -258,11 +268,12 @@ bool isr_clear_mon_table(int task);
  * @brief Registers an announced observer
  * 
  * @param type Monitoring type
+ * @param task Task ID of the observer
  * @param addr Address of the observer
  * 
  * @return False
  */
-bool isr_announce_mon(enum MONITOR_TYPE type, int addr);
+bool isr_announce_mon(enum MONITOR_TYPE type, int task, int addr);
 
 /**
  * @brief Aborts a task

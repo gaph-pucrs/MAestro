@@ -22,6 +22,7 @@
 #include "mmr.h"
 #include "interrupts.h"
 #include "broadcast.h"
+#include "syscall.h"
 
 observer_t _observers[MON_MAX];
 
@@ -31,7 +32,7 @@ void llm_init()
 		_observers[i].addr = -1;
 }
 
-void llm_set_observer(enum MONITOR_TYPE type, int addr)
+void llm_set_observer(enum MONITOR_TYPE type, int task, int addr)
 {
 	int pe_addr = MMR_DMNI_ADDRESS;
 	uint8_t pe_x = pe_addr >> 8;
@@ -41,6 +42,7 @@ void llm_set_observer(enum MONITOR_TYPE type, int addr)
 	uint16_t dist = abs(pe_x - obs_x) + abs(pe_y - obs_y);
 
 	if(_observers[type].addr == -1 || _observers[type].dist > dist){
+		_observers[type].task = task;
 		_observers[type].addr = addr;
 		_observers[type].dist = dist;
 	}
@@ -61,7 +63,7 @@ void llm_clear_table(int task_id)
 
 bool llm_has_monitor(int mon_id)
 {
-	return (_observers[MON_QOS].addr != -1);
+	return (_observers[mon_id].addr != -1);
 }
 
 void llm_rt(unsigned *last_monitored, int id, unsigned slack_time, unsigned remaining_exec_time)
@@ -78,4 +80,19 @@ void llm_rt(unsigned *last_monitored, int id, unsigned slack_time, unsigned rema
 	
 	if(bcast_send(&packet, _observers[MON_QOS].addr, MON_QOS))
 		*last_monitored = now;
+}
+
+void llm_sec(unsigned timestamp, unsigned size, int src, int dst, int prod, int cons, unsigned now)
+{
+	unsigned src_x = (src >> 8) & 0xFF;
+	unsigned src_y = (src & 0xFF);
+	unsigned dst_x = (dst >> 8) & 0xFF;
+	unsigned dst_y = (dst & 0xFF);
+	unsigned hops = abs(src_x - dst_x) + abs(src_y - dst_y);
+	unsigned edge = (prod << 16) | (cons & 0xFFFF);
+	unsigned latency = (now - timestamp);
+
+	/* @todo Maybe it's better to use sending timestamp (timestamp instead of now) */
+	unsigned msg[] = {MONITOR, now, size, hops, edge, latency};
+	sys_kernel_writepipe(msg, sizeof(msg), _observers[MON_SEC].task, _observers[MON_SEC].addr);
 }
