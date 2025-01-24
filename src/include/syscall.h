@@ -273,3 +273,5 @@ int sys_halt(tl_t *tl);
  * @return int 0 if success, EACCES if not permitted
  */
 int sys_end_simulation(tcb_t *tcb);
+
+int sys_safelog(unsigned timestamp, unsigned latency, int edge, bool anomaly);

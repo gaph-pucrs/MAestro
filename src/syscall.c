@@ -118,6 +118,8 @@ tcb_t *sys_syscall(
 			case SYS_sendraw:
 				ret = sys_sendraw(current, (void*)arg1, arg2);
 				break;
+			case SYS_safelog:
+				ret = sys_safelog(arg1, arg2, arg3, arg4);
 			default:
 				printf("ERROR: Unknown syscall %x\n", number);
 				ret = 0;
@@ -912,5 +914,14 @@ int sys_end_simulation(tcb_t *tcb)
 		return -EACCES;
 
 	MMR_DBG_HALT = 1;
+	return 0;
+}
+
+int sys_safelog(unsigned timestamp, unsigned latency, int edge, bool anomaly)
+{
+	MMR_DBG_SAFE_TIMESTAMP = timestamp;
+	MMR_DBG_SAFE_LATENCY   = latency;
+	MMR_DBG_SAFE_EDGE      = edge;
+	MMR_DBG_SAFE_ANOMALY   = anomaly;
 	return 0;
 }

@@ -66,6 +66,10 @@
 #define MMR_DBG_REM_REQ				(*(volatile unsigned int*)0x80000034U)
 #define MMR_DBG_ADD_DAV				(*(volatile unsigned int*)0x80000040U)
 #define MMR_DBG_REM_DAV				(*(volatile unsigned int*)0x80000044U)
+#define MMR_DBG_SAFE_TIMESTAMP		(*(volatile unsigned int*)0x80000050U)
+#define MMR_DBG_SAFE_LATENCY		(*(volatile unsigned int*)0x80000054U)
+#define MMR_DBG_SAFE_EDGE			(*(volatile unsigned int*)0x80000058U)
+#define MMR_DBG_SAFE_ANOMALY		(*(volatile unsigned int*)0x8000005CU)
 
 enum PLIC_IE {
 	PLIC_IE_NONE = 0x1,
