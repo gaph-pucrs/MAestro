@@ -917,11 +917,11 @@ int sys_end_simulation(tcb_t *tcb)
 	return 0;
 }
 
-int sys_safelog(unsigned timestamp, unsigned latency, int edge, bool anomaly)
+int sys_safelog(unsigned snd_time, unsigned inf_time, unsigned edge, unsigned inf_lat)
 {
-	MMR_DBG_SAFE_TIMESTAMP = timestamp;
-	MMR_DBG_SAFE_LATENCY   = latency;
-	MMR_DBG_SAFE_EDGE      = edge;
-	MMR_DBG_SAFE_ANOMALY   = anomaly;
+	MMR_DBG_SAFE_SND_TIME = snd_time;
+	MMR_DBG_SAFE_INF_TIME = inf_time;
+	MMR_DBG_SAFE_EDGE     = edge;
+	MMR_DBG_SAFE_INF_LAT  = inf_lat;
 	return 0;
 }

@@ -274,4 +274,14 @@ int sys_halt(tl_t *tl);
  */
 int sys_end_simulation(tcb_t *tcb);
 
-int sys_safelog(unsigned timestamp, unsigned latency, int edge, bool anomaly);
+/**
+ * @brief Logs SAFE inference
+ * 
+ * @param snd_time Timestamp of originating message
+ * @param inf_time Timestamp after inference
+ * @param edge     Edge of monitored message
+ * @param inf_lat  Inference latency (XGBoost)
+ * 
+ * @return 0
+ */
+int sys_safelog(unsigned snd_time, unsigned inf_time, unsigned edge, unsigned inf_lat);
