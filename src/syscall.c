@@ -119,7 +119,7 @@ tcb_t *sys_syscall(
 				ret = sys_sendraw(current, (void*)arg1, arg2);
 				break;
 			case SYS_safelog:
-				ret = sys_safelog(arg1, arg2, arg3, arg4);
+				ret = sys_safelog(arg1, arg2, arg3, arg4, arg5, arg6);
 			default:
 				printf("ERROR: Unknown syscall %x\n", number);
 				ret = 0;
@@ -917,11 +917,13 @@ int sys_end_simulation(tcb_t *tcb)
 	return 0;
 }
 
-int sys_safelog(unsigned snd_time, unsigned inf_time, unsigned edge, unsigned inf_lat)
+int sys_safelog(unsigned snd_time, unsigned inf_time, unsigned edge, unsigned inf_lat, unsigned lat_pred, unsigned lat_mon)
 {
 	MMR_DBG_SAFE_SND_TIME = snd_time;
 	MMR_DBG_SAFE_INF_TIME = inf_time;
 	MMR_DBG_SAFE_EDGE     = edge;
 	MMR_DBG_SAFE_INF_LAT  = inf_lat;
+	MMR_DBG_SAFE_LAT_PRED = lat_pred;
+	MMR_DBG_SAFE_LAT_MON  = lat_mon;
 	return 0;
 }

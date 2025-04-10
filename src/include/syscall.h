@@ -281,7 +281,8 @@ int sys_end_simulation(tcb_t *tcb);
  * @param inf_time Timestamp after inference
  * @param edge     Edge of monitored message
  * @param inf_lat  Inference latency (XGBoost)
+ * @param lat_pred Predicted latency
  * 
  * @return 0
  */
-int sys_safelog(unsigned snd_time, unsigned inf_time, unsigned edge, unsigned inf_lat);
+int sys_safelog(unsigned snd_time, unsigned inf_time, unsigned edge, unsigned inf_lat, unsigned lat_pred, unsigned lat_mon);

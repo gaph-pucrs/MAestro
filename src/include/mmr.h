@@ -71,6 +71,8 @@
 #define MMR_DBG_SAFE_INF_TIME		(*(volatile unsigned int*)0x80000054U)
 #define MMR_DBG_SAFE_EDGE			(*(volatile unsigned int*)0x80000058U)
 #define MMR_DBG_SAFE_INF_LAT		(*(volatile unsigned int*)0x8000005CU)
+#define MMR_DBG_SAFE_LAT_PRED		(*(volatile unsigned int*)0x80000060U)
+#define MMR_DBG_SAFE_LAT_MON		(*(volatile unsigned int*)0x80000064U)
 
 enum PLIC_IE {
 	PLIC_IE_NONE = 0x1,
