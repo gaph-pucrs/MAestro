@@ -23,8 +23,8 @@ INCMUTILS = $(DIRMUTILS)/src/include
 HDRMUTILS = $(wildcard $(DIRMUTILS)/*.h) $(wildcard $(DIRMUTILS)/**/*.h)
 LIBMUTILS = $(DIRMUTILS)/libmutils.a
 
-CFLAGS  = -march=rv32imac -mabi=ilp32 -Os -fdata-sections -ffunction-sections -flto -Wall -std=c23 -I$(INCDIR) -I$(HALDIR) -I$(INCMEMPHIS) -I$(INCMUTILS)
-LDFLAGS = --specs=nano.specs -T maestro.ld -march=rv32imac -mabi=ilp32 -nostartfiles -Wl,--gc-sections,-flto -L$(DIRMUTILS) -lmutils
+CFLAGS  = -march=rv32imac_zicntr_zicsr_zihpm -mabi=ilp32 -Os -fdata-sections -ffunction-sections -flto -Wall -std=c23 -I$(INCDIR) -I$(HALDIR) -I$(INCMEMPHIS) -I$(INCMUTILS)
+LDFLAGS = --specs=nano.specs -T maestro.ld -march=rv32imac_zicntr_zicsr_zihpm -mabi=ilp32 -nostartfiles -Wl,--gc-sections,-flto -L$(DIRMUTILS) -lmutils
 
 CCSRC = $(wildcard $(SRCDIR)/*.c) $(wildcard $(HALDIR)/*.c)
 CCOBJ = $(patsubst %.c, %.o, $(CCSRC))
