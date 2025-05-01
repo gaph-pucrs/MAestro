@@ -27,7 +27,7 @@ void page_init()
      * @todo
      * Initialize instruction and data pages
      */
-    const unsigned MAX_TASKS = MMR_DMNI_MAX_LOCAL_TASKS;
+    const unsigned MAX_TASKS = (MMR_DMNI_MANYCORE_SIZE >> 16);
     const unsigned PAGE_SIZE = MMR_DMNI_IMEM_PAGE_SIZE;
 
     _pages = malloc(MAX_TASKS*sizeof(page_t));
@@ -45,7 +45,7 @@ void page_init()
 
 page_t *page_acquire()
 {
-    const unsigned MAX_TASKS = MMR_DMNI_MAX_LOCAL_TASKS;
+    const unsigned MAX_TASKS = (MMR_DMNI_MANYCORE_SIZE >> 16);
     for(int i = 0; i < MAX_TASKS; i++){
         if(_pages[i].free){
             _pages[i].free = false;

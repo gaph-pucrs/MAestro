@@ -40,32 +40,12 @@ tcb_t *isr_isr(unsigned status)
 	bool call_scheduler = false;
 	/* Check interrupt source */
 	if(status & RISCV_MEI){
-		if(MMR_DMNI_IP & DMNI_IP_BRLITE){
+		if(MMR_DMNI_IP & (1 << DMNI_IP_BRLITE)){
 			// puts("BR");
 			bcast_t bcast_packet;
 			bcast_read(&bcast_packet);
-
-			if(
-				(MMR_DMNI_STATUS & DMNI_STATUS_SEND_ACTIVE) && 
-				(
-					bcast_packet.service == MESSAGE_REQUEST || 
-					bcast_packet.service == TASK_MIGRATION
-				)
-			){
-				/* Fake a packet as a pending service */
-				packet_t *packet = malloc(sizeof(packet_t));
-				if(packet == NULL){
-					puts("FATAL: could not allocate memory.");
-					while(1);
-				}
-
-				bcast_fake_packet(&bcast_packet, packet);
-				// puts("Faking packet as pending service\n");
-				psvc_push_back(packet);
-			} else {
-				call_scheduler |= isr_handle_broadcast(&bcast_packet);
-			}
-		} else if(MMR_DMNI_IP & DMNI_IP_HERMES){
+			call_scheduler |= isr_handle_broadcast(&bcast_packet);
+		} else if(MMR_DMNI_IP & (1 << DMNI_IP_HERMES)){
 			// puts("NOC");
 			packet_t *packet = malloc(sizeof(packet_t));
 			if(packet == NULL){
@@ -76,7 +56,7 @@ tcb_t *isr_isr(unsigned status)
 			dmni_receive(((void*)packet) + 4, PKT_SIZE - 1);
 
 			if(
-				(MMR_DMNI_STATUS & DMNI_STATUS_SEND_ACTIVE) && 
+				(MMR_DMNI_STATUS & (1 << DMNI_STATUS_SEND_ACTIVE)) && 
 				(packet->service == DATA_AV || packet->service == MESSAGE_REQUEST)
 			){
 				psvc_push_back(packet);
@@ -84,7 +64,7 @@ tcb_t *isr_isr(unsigned status)
 				call_scheduler = isr_handle_pkt(packet);
 				free(packet);
 			}
-		} else if(MMR_DMNI_IP & DMNI_IP_PENDING){
+		} else if(MMR_DMNI_IP & (1 << DMNI_IP_PENDING)){
 			// puts("PEND");
 			/* Pending packet. Handle it */
 
@@ -140,38 +120,18 @@ tcb_t *isr_isr(unsigned status)
 bool isr_handle_broadcast(bcast_t *packet)
 {
 	// printf("Broadcast received %x\n", packet->service);
-	int16_t addr_field = packet->payload >> 16;
-	int16_t task_field = packet->payload;
+	uint8_t id_field = packet->payload & 0xFF;
+	uint8_t other_field = packet->payload >> 8;
 
 	switch(packet->service){
-		case CLEAR_MON_TABLE:
-			/* Write to DMNI register the ID value */
-			return isr_clear_mon_table(task_field);
 		case ANNOUNCE_MONITOR:
-			return isr_announce_mon((task_field >> 8), (task_field & 0xFF), addr_field);
+			return isr_announce_mon(other_field, id_field, packet->src_addr);
 		case RELEASE_PERIPHERAL:
 			return sys_release_peripheral();
-		case TASK_MIGRATION:
-			return isr_task_migration(task_field, addr_field);
-		case DATA_AV:
-			// printf("Received DATA_AV via BrNoC with pre-cons %x and pre-prod %x\n", task_field, packet->src_id);
-			return isr_data_available(
-				bcast_convert_id(task_field, MMR_DMNI_ADDRESS), 
-				bcast_convert_id(packet->src_id, addr_field), 
-				addr_field
-			);
-		case MESSAGE_REQUEST:
-			return isr_message_request(
-				bcast_convert_id(packet->src_id, addr_field), 
-				addr_field, 
-				bcast_convert_id(task_field, MMR_DMNI_ADDRESS)
-			);
-		case ABORT_TASK:
-			return isr_abort_task(task_field);
 		case APP_TERMINATED:
-			return isr_app_terminated(task_field);
+			return isr_app_terminated(id_field);
 		case HALT_PE:
-			return isr_halt_pe(task_field, addr_field);
+			return isr_halt_pe(id_field, packet->src_addr);
 		default:
 			printf(
 				"ERROR: unknown broadcast %x at time %d\n", 
@@ -225,7 +185,7 @@ bool isr_handle_pkt(volatile packet_t *packet)
 				packet->task_ID, 
 				packet->allocated_processor
 			);
-		case MIGRATION_CODE:
+		case MIGRATION_TEXT:
 			return isr_migration_code(
 				packet->task_ID, 
 				packet->code_size, 
@@ -242,15 +202,6 @@ bool isr_handle_pkt(volatile packet_t *packet)
 			return isr_migration_app(
 				packet->task_ID, 
 				packet->request_size
-			);
-		case MIGRATION_SCHED:
-			return isr_migration_sched(
-				packet->task_ID, 
-				packet->period, 
-				packet->deadline, 
-				packet->execution_time, 
-				packet->waiting_msg,
-				packet->source_PE
 			);
 		case MIGRATION_DATA_AV:
 		case MIGRATION_MSG_REQUEST:
@@ -270,9 +221,7 @@ bool isr_handle_pkt(volatile packet_t *packet)
 				packet->task_ID, 
 				packet->stack_size
 			);
-		case MIGRATION_HEAP:
-			return isr_migration_heap(packet->task_ID, packet->heap_size);
-		case MIGRATION_DATA_BSS:
+		case MIGRATION_DATA:
 			return isr_migration_data_bss(
 				packet->task_ID, 
 				packet->data_size, 
@@ -715,8 +664,6 @@ bool isr_task_migration(int id, int addr)
 
 	printf("Trying to migrate task %d to address %d\n", id, addr);
 
-	llm_clear_table(id);
-
 	tcb_set_migrate_addr(task, addr);
 
 	/* Send constant .text section */
@@ -1013,12 +960,6 @@ bool isr_migration_app(int id, size_t task_cnt)
 
 	// printf("Received MIGRATION_APP from task id %d with size %d\n", id, task_cnt);
 
-	return false;
-}
-
-bool isr_clear_mon_table(int task)
-{
-	MMR_DMNI_BRMON_CLEAR = task;
 	return false;
 }
 

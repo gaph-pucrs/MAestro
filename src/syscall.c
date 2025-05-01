@@ -83,13 +83,7 @@ tcb_t *sys_syscall(
 				ret = sys_get_location();
 				break;
 			case SYS_brall:
-				ret = sys_br_send_all(current, arg1, arg2);
-				break;
-			case SYS_brtgt:
-				ret = sys_br_send_tgt(current, arg1, arg2, arg3);
-				break;
-			case SYS_monptr:
-				ret = sys_mon_ptr(current, (unsigned*)arg1, arg2);
+				ret = sys_br_send(current, arg1, arg2);
 				break;
 			case SYS_getctx:
 				ret = sys_get_ctx(current, (mctx_t*)arg1);
@@ -121,7 +115,7 @@ tcb_t *sys_syscall(
 			case SYS_safelog:
 				ret = sys_safelog(arg1, arg2, arg3, arg4, arg5, arg6);
 			default:
-				printf("ERROR: Unknown syscall %x\n", number);
+				printf("ERROR: Unknown syscall %d\n", number);
 				ret = 0;
 				break;
 		}
@@ -293,7 +287,7 @@ int sys_writepipe(tcb_t *tcb, void *buf, size_t size, int cons_task, bool sync)
 				return -EAGAIN;
 			}
 
-			if((MMR_DMNI_STATUS & DMNI_STATUS_SEND_ACTIVE)){
+			if((MMR_DMNI_STATUS & (1 << DMNI_STATUS_SEND_ACTIVE))){
 				schedule_after_syscall = true;
 				return -EAGAIN;
 			}
@@ -649,7 +643,7 @@ bool sys_kernel_syscall(unsigned *message, int length)
 
 bool sys_kernel_writepipe(void *buf, size_t size, int cons_task, int cons_addr)
 {
-	// printf("Kernel writing pending message to task %d with size %d\n", task, size);
+	// printf("Kernel writing pending message to task %d with size %d\n", cons_task, size);
 	/* Insert message in kernel output message buffer */
 	int result = pmsg_emplace_back(buf, size, cons_task);
 
@@ -698,7 +692,7 @@ bool sys_kernel_writepipe(void *buf, size_t size, int cons_task, int cons_addr)
 
 bool sys_release_peripheral()
 {
-	MMR_DMNI_REL_PERIPHERAL = 1;
+	MMR_DMNI_STATUS |= (1 << DMNI_STATUS_REL_PERIPHERAL);
 	// puts("Peripherals released\n");
 	return false;
 }
@@ -713,7 +707,7 @@ int sys_getpid(tcb_t *tcb)
 	return tcb_get_id(tcb);
 }
 
-int sys_br_send_all(tcb_t *tcb, uint32_t payload, uint8_t ksvc)
+int sys_br_send(tcb_t *tcb, uint8_t ksvc, uint16_t payload)
 {
 	int prod_task = tcb_get_id(tcb);
 	
@@ -722,68 +716,15 @@ int sys_br_send_all(tcb_t *tcb, uint32_t payload, uint8_t ksvc)
 
 	bcast_t packet;
 	packet.service = ksvc;
-	packet.src_id = prod_task;
+	packet.src_addr = MMR_DMNI_ADDRESS;
 	packet.payload = payload;
 
-	if(!bcast_send(&packet, MMR_DMNI_ADDRESS, BR_SVC_ALL)){
+	if(!bcast_send(&packet)){
 		schedule_after_syscall = true;
 		return -EAGAIN;
 	}
 		
-	packet.src_addr = MMR_DMNI_ADDRESS;
 	schedule_after_syscall = isr_handle_broadcast(&packet);
-	return 0;
-}
-
-int sys_br_send_tgt(tcb_t *tcb, uint32_t payload, uint16_t target, uint8_t ksvc)
-{
-	int prod_task = tcb_get_id(tcb);
-	
-	if(prod_task >> 8 != 0)	/* AppID should be 0 */
-		return -EINVAL;
-
-	bcast_t packet;
-	packet.service = ksvc;
-	packet.src_id = prod_task;
-	packet.payload = payload;
-
-	if(target == MMR_DMNI_ADDRESS){
-		packet.src_addr = MMR_DMNI_ADDRESS;
-		schedule_after_syscall = isr_handle_broadcast(&packet);
-		return 0;
-	}
-
-	if(!bcast_send(&packet, target, BR_SVC_TGT)){
-		schedule_after_syscall = true;
-		return -EAGAIN;
-	}
-
-	return 0;
-}
-
-int sys_mon_ptr(tcb_t *tcb, unsigned* table, enum MONITOR_TYPE type)
-{
-	if(tcb_get_id(tcb) >> 8 != 0)	/* AppID should be 0 */
-		return -EINVAL;
-
-	if(table == NULL){
-		printf("ERROR: Table is null.\n");
-		return -EINVAL;
-	}
-
-	table = (unsigned*)((unsigned)table | (unsigned)tcb_get_offset(tcb));
-
-	switch(type){
-		case MON_QOS:
-			MMR_DMNI_BRMON_QOS_PTR = (unsigned)table;
-			break;
-		case MON_SEC:
-			MMR_DMNI_BRMON_SEC_PTR = (unsigned)table;
-			break;
-		default:
-			return -EINVAL;
-	}
-
 	return 0;
 }
 
@@ -874,10 +815,11 @@ int sys_close(int file)
 int sys_get_ctx(tcb_t *tcb, mctx_t *ctx)
 {
 	mctx_t *real_ptr = (mctx_t*)((unsigned)tcb_get_offset(tcb) | (unsigned)ctx);
-	real_ptr->PE_X_CNT 	= MMR_DMNI_MANYCORE_SIZE >> 16;
-	real_ptr->PE_Y_CNT 	= MMR_DMNI_MANYCORE_SIZE & 0xFFFF;
+	uint32_t size_register = MMR_DMNI_MANYCORE_SIZE;
+	real_ptr->PE_X_CNT 	= (size_register >> 8) & 0xFF;
+	real_ptr->PE_Y_CNT 	= size_register & 0xFF;
 	real_ptr->PE_CNT	= real_ptr->PE_X_CNT * real_ptr->PE_Y_CNT;
-	real_ptr->PE_SLOTS 	= MMR_DMNI_MAX_LOCAL_TASKS;
+	real_ptr->PE_SLOTS 	= size_register >> 16;
 	real_ptr->MC_SLOTS 	= real_ptr->PE_SLOTS * real_ptr->PE_CNT;
 
 	return 0;

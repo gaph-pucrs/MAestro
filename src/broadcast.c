@@ -21,78 +21,42 @@
 #include "mmr.h"
 
 /**
- * @brief Converts an address into a sequential ID
+ * @brief Converts a sequential address into an hexadecimal address 0xXXYY
  * 
- * @param addr hexadecimal address
- * @return int16_t sequential ID
+ * @param addr sequential address
+ *
+ * @return uint16_t hexadecimal ID
  */
-int16_t _bcast_convert_seq_id(int16_t addr);
+uint16_t _bcast_seq2idx(uint16_t seq_addr);
 
-bool bcast_send(bcast_t *packet, int16_t tgt_addr, uint8_t service)
+bool bcast_send(bcast_t *packet)
 {
-	if((MMR_DMNI_STATUS & DMNI_STATUS_LOCAL_BUSY))
+	if (!(packet->service & 0x80) || (packet->service & 0x70))
 		return false;
 
-	MMR_DMNI_BRLITE_SERVICE  = service & 0x3;
+	if((MMR_DMNI_STATUS & (1 << DMNI_STATUS_LOCAL_BUSY)))
+		return false;
+
 	MMR_DMNI_BRLITE_KSVC     = packet->service;
-	MMR_DMNI_BRLITE_PRODUCER = packet->src_id;
-	MMR_DMNI_BRLITE_TARGET   = _bcast_convert_seq_id(tgt_addr);
 	MMR_DMNI_BRLITE_PAYLOAD  = packet->payload;
-	
-	MMR_DMNI_BRLITE_START = 1;
+
 	return true;
 }
 
 void bcast_read(bcast_t *packet)
 {
-	packet->service = MMR_DMNI_BRSVC_KSVC;
+	packet->service = MMR_DMNI_BRLITE_KSVC;
 
-	uint32_t producer = MMR_DMNI_BRSVC_PRODUCER;
-	packet->src_addr = producer >> 16;
-	packet->src_id = producer & 0xFFFF;
-	
-	packet->payload = MMR_DMNI_BRSVC_PAYLOAD;
-
-	MMR_DMNI_BRSVC_POP = 1;
+	uint32_t payload = MMR_DMNI_BRLITE_PAYLOAD;
+	packet->src_addr = _bcast_seq2idx(payload >> 16);
+	packet->payload  = payload & 0xFFFF;
 }
 
-void bcast_fake_packet(bcast_t *bcast_packet, packet_t *packet)
+uint16_t _bcast_seq2idx(uint16_t seq_addr)
 {
-	packet->service = bcast_packet->service;
-
-	int16_t id_field = bcast_packet->payload;
-	int16_t addr_field = bcast_packet->payload >> 16;
-
-	switch(packet->service){
-		case DATA_AV:
-			packet->producer_task = bcast_convert_id(bcast_packet->src_id, addr_field);
-			packet->consumer_task = bcast_convert_id(id_field, MMR_DMNI_ADDRESS);
-			packet->requesting_processor = addr_field;
-			break;
-		case MESSAGE_REQUEST:
-			packet->producer_task = bcast_convert_id(id_field, MMR_DMNI_ADDRESS);
-			packet->consumer_task = bcast_convert_id(bcast_packet->src_id, addr_field);
-			packet->requesting_processor = addr_field;
-			break;
-		case TASK_MIGRATION:
-			packet->task_ID = id_field;
-			packet->allocated_processor = addr_field;
-			break;
-		default:
-			printf("ERROR: Service %x not implemented in br->hermes\n", packet->service);
-			break;
-	}
-}
-
-int bcast_convert_id(int16_t id, int16_t addr)
-{
-	return (id == -1) ? (MEMPHIS_KERNEL_MSG | (int)addr) : id;
-}
-
-int16_t _bcast_convert_seq_id(int16_t addr)
-{
-	if (addr == -1)
+	if (seq_addr == -1)
 		return -1;
 
-	return (addr & 0xFF) * (MMR_DMNI_MANYCORE_SIZE >> 16) + (addr >> 8);
+	uint8_t x_size = ((MMR_DMNI_MANYCORE_SIZE >> 8) & 0xFF);
+	return ((seq_addr % x_size) << 8) | ((seq_addr / x_size) & 0xFF);
 }

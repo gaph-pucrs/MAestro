@@ -28,7 +28,7 @@ list_entry_t *psvc_push_back(packet_t *packet)
 	if(entry == NULL)
 		return NULL;
 
-	MMR_DMNI_PENDING_SVC = 1;
+	MMR_DMNI_IP |= (1 << DMNI_IP_PENDING);
 	return entry;
 }
 
@@ -47,7 +47,7 @@ void psvc_pop_front()
 	list_pop_front(&_psvcs);
 
 	if(list_empty(&_psvcs))
-		MMR_DMNI_PENDING_SVC = 0;
+		MMR_DMNI_IP &= ~(1 << DMNI_IP_PENDING);
 }
 
 bool psvc_empty()

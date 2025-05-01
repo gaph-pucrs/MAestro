@@ -316,12 +316,11 @@ void tm_send_sched(tcb_t *tcb, int id, int addr)
 
 void tm_abort_task(int id, int addr)
 {
-	bcast_t packet;
-
-	packet.service = ABORT_TASK;
-	packet.src_id = -1;
-	packet.payload = id;
-	while(!bcast_send(&packet, addr, BR_SVC_TGT));
+	/**
+	 * @todo
+	 * Send inside MESSAGE_DELIVERY
+	 * Or change broadcast to abort_app
+	 */
 }
 
 bool _tm_find_app_fnc(void *data, void* cmpval)

@@ -36,13 +36,6 @@ void llm_init();
 void llm_set_observer(enum MONITOR_TYPE type, int task, int addr);
 
 /**
- * @brief Clears the monitoring table of terminated/migrated task
- * 
- * @param task_id ID of the task to clear
- */
-void llm_clear_table(int task_id);
-
-/**
  * @brief Check if monitoring type has monitor
  * 
  * @param mon_id ID of the monitoring type

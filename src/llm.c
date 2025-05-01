@@ -48,19 +48,6 @@ void llm_set_observer(enum MONITOR_TYPE type, int task, int addr)
 	}
 }
 
-void llm_clear_table(int task_id)
-{
-	isr_clear_mon_table(task_id);
-
-	bcast_t packet;
-	packet.service = CLEAR_MON_TABLE;
-	packet.src_id = -1;
-
-	packet.payload = task_id;
-
-	while(!bcast_send(&packet, MMR_DMNI_ADDRESS, BR_SVC_ALL));
-}
-
 bool llm_has_monitor(int mon_id)
 {
 	return (_observers[mon_id].addr != -1);
@@ -68,18 +55,7 @@ bool llm_has_monitor(int mon_id)
 
 void llm_rt(unsigned *last_monitored, int id, unsigned slack_time, unsigned remaining_exec_time)
 {
-	unsigned now = MMR_RTC_MTIME;
-
-	if(now - (*last_monitored) < MON_INTERVAL_QOS)
-		return;
-
-	bcast_t packet;
-	packet.service = MONITOR;
-	packet.src_id = id;
-	packet.payload = slack_time - remaining_exec_time;
-	
-	if(bcast_send(&packet, _observers[MON_QOS].addr, MON_QOS))
-		*last_monitored = now;
+	/* @todo change to Hermes */
 }
 
 void llm_sec(unsigned timestamp, unsigned size, int src, int dst, int prod, int cons, unsigned now)

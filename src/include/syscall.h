@@ -170,35 +170,12 @@ int sys_getpid(tcb_t *tcb);
  * @brief Sends a message via broadcast
  * 
  * @param tcb Pointer to the producer TCB
+ * @param ksvc Kernel service used (see services.h)
  * @param payload Message to send
- * @param ksvc Kernel service used in ALL and TARGET (see services.h)
  * 
  * @return 0 if success. 1 if BrNoC is busy. 2 unauthorized.
  */
-int sys_br_send_all(tcb_t *tcb, uint32_t payload, uint8_t ksvc);
-
-/**
- * @brief Sends a message via broadcast
- * 
- * @param tcb Pointer to the producer TCB
- * @param payload Message to send
- * @param target PE address to send the message to
- * @param ksvc Kernel service used in ALL and TARGET (see services.h)
- * 
- * @return 0 if success. 1 if BrNoC is busy. 2 unauthorized.
- */
-int sys_br_send_tgt(tcb_t *tcb, uint32_t payload, uint16_t target, uint8_t ksvc);
-
-/**
- * @brief Sets the monitoring table pointer to a observer task
- * 
- * @param tcb Pointer to the TCB
- * @param table Pointer to table.
- * @param type Monitoring type
- * 
- * @return 0 if success. 1 if unauthorized. 2 if wrong type.
- */
-int sys_mon_ptr(tcb_t *tcb, unsigned* table, enum MONITOR_TYPE type);
+int sys_br_send(tcb_t *tcb, uint8_t ksvc, uint16_t payload);
 
 /**
  * @brief Sets the brk (heap end) of a task

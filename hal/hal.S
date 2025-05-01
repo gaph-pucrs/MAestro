@@ -56,7 +56,7 @@ _start:
 
 	# Load data memory size to sp
 	li		t2, MMR_DMNI_BASE
-	lw		sp, 0x20(t2)
+	lw		sp, 0x14(t2)
 
 	# Configure virtual memory data size mask
 	addi 	sp, sp, -1

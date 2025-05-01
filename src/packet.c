@@ -100,7 +100,7 @@ void pkt_set_message_request(packet_t *packet, int prod_addr, int cons_addr, int
 void pkt_set_migration_code(packet_t *packet, int addr, int task, size_t text_size, int mapper_task, int mapper_addr)
 {
 	packet->header = addr;
-	packet->service = MIGRATION_CODE;
+	packet->service = MIGRATION_TEXT;
 	packet->task_ID = task;
 	packet->code_size = text_size;
 	packet->mapper_task = mapper_task;
@@ -127,7 +127,7 @@ void pkt_set_migration_tl(packet_t *packet, int addr, unsigned service, int id, 
 void pkt_set_migration_data_bss(packet_t *packet, int addr, int id, size_t data_size, size_t bss_size)
 {
 	packet->header = addr;
-	packet->service = MIGRATION_DATA_BSS;
+	packet->service = MIGRATION_DATA;
 	packet->task_ID = id;
 	packet->data_size = data_size;
 	packet->bss_size = bss_size;
@@ -136,7 +136,7 @@ void pkt_set_migration_data_bss(packet_t *packet, int addr, int id, size_t data_
 void pkt_set_migration_heap(packet_t *packet, int addr, int id, size_t size)
 {
 	packet->header = addr;
-	packet->service = MIGRATION_HEAP;
+	packet->service = MIGRATION_DATA;
 	packet->task_ID = id;
 	packet->heap_size = size;
 }
@@ -168,7 +168,7 @@ void pkt_set_migration_sched(
 )
 {
 	packet->header = addr;
-	packet->service = MIGRATION_SCHED;
+	packet->service = MIGRATION_DATA;
 	packet->task_ID = id;
 	/* RT constraints */
 	packet->period = period;
