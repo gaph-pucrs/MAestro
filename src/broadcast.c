@@ -37,19 +37,19 @@ bool bcast_send(bcast_t *packet)
 	if((MMR_DMNI_STATUS & (1 << DMNI_STATUS_LOCAL_BUSY)))
 		return false;
 
-	MMR_DMNI_BRLITE_KSVC     = packet->service;
 	MMR_DMNI_BRLITE_PAYLOAD  = packet->payload;
+	MMR_DMNI_BRLITE_KSVC     = packet->service;
 
 	return true;
 }
 
 void bcast_read(bcast_t *packet)
 {
-	packet->service = MMR_DMNI_BRLITE_KSVC;
-
 	uint32_t payload = MMR_DMNI_BRLITE_PAYLOAD;
 	packet->src_addr = _bcast_seq2idx(payload >> 16);
 	packet->payload  = payload & 0xFFFF;
+
+	packet->service = MMR_DMNI_BRLITE_KSVC;
 }
 
 uint16_t _bcast_seq2idx(uint16_t seq_addr)
