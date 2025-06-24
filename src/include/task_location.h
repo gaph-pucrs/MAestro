@@ -67,24 +67,6 @@ int tl_get_task(tl_t *tl);
 int tl_get_addr(tl_t *tl);
 
 /**
- * @brief Sends a data available
- * 
- * @param dav Pointer to the data available task location
- * @param cons_task ID of the consumer task
- * @param cons_addr Address of the consumer task
- */
-void tl_send_dav(tl_t *dav, int cons_task, int cons_addr);
-
-/**
- * @brief Sends a message request
- * 
- * @param msgreq Pointer to the message request task location
- * @param prod_task ID of the producer task
- * @param prod_addr Address of the producer task
- */
-void tl_send_msgreq(tl_t *msgreq, int prod_task, int prod_addr);
-
-/**
  * @brief Sets a task location
  * 
  * @param tl Pointer to the task location

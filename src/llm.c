@@ -11,18 +11,19 @@
  * @brief Implements the Low-Level Monitor for Management Application support.
  */
 
-#include "llm.h"
+#include <llm.h>
 
 #include <stdlib.h>
+
+#include <mmr.h>
+#include <interrupts.h>
+#include <broadcast.h>
+#include <kernel_pipe.h>
 
 #include <memphis.h>
 #include <memphis/monitor.h>
 #include <memphis/services.h>
-
-#include "mmr.h"
-#include "interrupts.h"
-#include "broadcast.h"
-#include "syscall.h"
+#include <memphis/messaging.h>
 
 observer_t _observers[MON_MAX];
 
@@ -34,7 +35,7 @@ void llm_init()
 
 void llm_set_observer(enum MONITOR_TYPE type, int task, int addr)
 {
-	int pe_addr = MMR_DMNI_ADDRESS;
+	int pe_addr = MMR_DMNI_INF_ADDRESS;
 	uint8_t pe_x = pe_addr >> 8;
 	uint8_t pe_y = pe_addr & 0xFF;
 	uint8_t obs_x = addr >> 8;
@@ -55,21 +56,36 @@ bool llm_has_monitor(int mon_id)
 
 void llm_rt(unsigned *last_monitored, int id, unsigned slack_time, unsigned remaining_exec_time)
 {
-	/* @todo change to Hermes */
+	unsigned now = MMR_RTC_MTIME;
+
+	if (now - (*last_monitored) < MON_INTERVAL_QOS)
+		return;
+
+	memphis_qos_monitor_t monitor;
+	monitor.task                = id;
+	monitor.service             = QOS_MONITOR;
+	monitor.slack_time          = slack_time;
+	monitor.remaining_exec_time = remaining_exec_time;
+	kpipe_add(&monitor, sizeof(memphis_qos_monitor_t), _observers[MON_QOS].task, _observers[MON_QOS].addr);
+	*last_monitored = now;
 }
 
 void llm_sec(unsigned timestamp, unsigned size, int src, int dst, int prod, int cons, unsigned now)
 {
-	unsigned src_x = (src >> 8) & 0xFF;
-	unsigned src_y = (src & 0xFF);
-	unsigned dst_x = (dst >> 8) & 0xFF;
-	unsigned dst_y = (dst & 0xFF);
-	unsigned hops = abs(src_x - dst_x) + abs(src_y - dst_y);
-	unsigned edge = (prod << 16) | (cons & 0xFFFF);
-	unsigned latency = (now - timestamp);
+	const unsigned src_x = (src >> 8) & 0xFF;
+	const unsigned src_y = (src & 0xFF);
+	const unsigned dst_x = (dst >> 8) & 0xFF;
+	const unsigned dst_y = (dst & 0xFF);
 
-	unsigned size_hops = (size << 16) | (hops & 0xFFFF);
+	memphis_sec_monitor_t monitor;
+	monitor.prod      = prod;
+	monitor.cons      = cons;
+	monitor.service   = SEC_MONITOR;
+	monitor.app       = (prod >> 8) & 0xFF;
+	monitor.timestamp = timestamp;
+	monitor.latency   = (now - timestamp);
+	monitor.hops      = abs(src_x - dst_x) + abs(src_y - dst_y);
+	monitor.size      = size;
 
-	unsigned msg[] = {MONITOR, timestamp, size_hops, edge, latency};
-	sys_kernel_writepipe(msg, sizeof(msg), _observers[MON_SEC].task, _observers[MON_SEC].addr);
+	kpipe_add(&monitor, sizeof(memphis_sec_monitor_t), _observers[MON_SEC].task, _observers[MON_SEC].addr);
 }

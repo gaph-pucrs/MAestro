@@ -11,18 +11,19 @@
  * @brief This module defines the task control block (TCB) functions.
  */
 
-#include "task_control.h"
+#include <task_control.h>
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 
-#include <memphis/services.h>
+#include <mmr.h>
+#include <llm.h>
+#include <kernel_pipe.h>
 
-#include "mmr.h"
-#include "llm.h"
-#include "syscall.h"
+#include <memphis/services.h>
+#include <memphis/messaging.h>
 
 list_t _tcbs;
 
@@ -67,7 +68,7 @@ void tcb_alloc(
 {
 	memset(tcb->registers, 0, HAL_MAX_REGISTERS * sizeof(int));
 
-	tcb->registers[HAL_REG_SP] = 0x01000000 | (MMR_DMNI_DMEM_PAGE_SIZE - (sizeof(int) << 1));
+	tcb->registers[HAL_REG_SP] = MMR_DATA_BASE | (MMR_DMNI_INF_DMEM_PAGE_SZ - (sizeof(int) << 1));
 	tcb->pc = entry_point;
 
 	tcb->page = page_acquire();
@@ -83,7 +84,7 @@ void tcb_alloc(
 	tcb->bss_size = bss_size;
 	tcb->proc_to_migrate = -1;
 	
-	tcb->heap_end = (void*)(0x01000000 + data_size + bss_size);
+	tcb->heap_end = (void*)(MMR_DATA_BASE + data_size + bss_size);
 
 	tl_set(&(tcb->mapper), mapper_task, mapper_addr);
 	list_init(&(tcb->message_requests));
@@ -117,6 +118,10 @@ void tcb_alloc(
 	 * 0(sp) = argc = 0
 	 * 4(sp) = argv = 0
 	 */
+	// int  *argc = (0x01000000 | MMR_DMNI_INF_DMEM_PAGE_SZ) + page_get_offset(tcb->page) - 4;
+	// char *argv = (0x01000000 | MMR_DMNI_INF_DMEM_PAGE_SZ) + page_get_offset(tcb->page) - 8;
+	// *argc = 0;
+	// *argv = NULL;
 }
 
 bool tcb_check_stack(tcb_t *tcb)
@@ -127,9 +132,11 @@ bool tcb_check_stack(tcb_t *tcb)
 
 void _tcb_send_aborted(tcb_t *tcb)
 {
-	int task_aborted[] = {TASK_ABORTED, tcb->id};
-	sys_kernel_writepipe(
-		task_aborted, 
+	memphis_info_t task_aborted;
+	task_aborted.service = TASK_ABORTED;
+	task_aborted.task    = tcb->id;
+	kpipe_add(
+		&task_aborted, 
 		sizeof(task_aborted), 
 		tl_get_task(&(tcb->mapper)), 
 		tl_get_addr(&(tcb->mapper))
@@ -169,9 +176,11 @@ opipe_t *tcb_get_opipe(tcb_t *tcb)
 
 bool _tcb_send_terminated(tcb_t *tcb)
 {
-	int task_terminated[] = {TASK_TERMINATED, tcb->id};
-	return sys_kernel_writepipe(
-		task_terminated, 
+	memphis_info_t task_terminated;
+	task_terminated.service = TASK_TERMINATED;
+	task_terminated.task    = tcb->id;
+	return kpipe_add(
+		&task_terminated, 
 		sizeof(task_terminated),
 		tl_get_task(&(tcb->mapper)), 
 		tl_get_addr(&(tcb->mapper))
@@ -226,9 +235,11 @@ list_t *tcb_get_davs(tcb_t *tcb)
 
 bool tcb_send_allocated(tcb_t *tcb)
 {
-	int task_allocated[] = {TASK_ALLOCATED, tcb->id};
-	return sys_kernel_writepipe(
-		task_allocated, 
+	memphis_info_t task_allocated;
+	task_allocated.service = TASK_ALLOCATED;
+	task_allocated.task    = tcb->id;
+	return kpipe_add(
+		&task_allocated, 
 		sizeof(task_allocated),
 		tl_get_task(&(tcb->mapper)), 
 		tl_get_addr(&(tcb->mapper))

@@ -19,7 +19,7 @@
  * @brief This structure stores a task message in kernel space (task -- kernel -> NoC)
  */
 typedef struct _opipe {
-	int consumer_task;
+	int receiver;
 	void *buf;
 	size_t size;
 } opipe_t;
@@ -30,12 +30,11 @@ typedef struct _opipe {
  * @param opipe Pointer to the output pipe structure
  * @param msg Pointer to source message to copy to the pipe
  * @param size Size of the message to copy
- * @param prod_task Source consumer task ID
- * @param cons_task Target consumer task ID
+ * @param receiver Target consumer task ID
  * 
  * @return int Number of bytes copied
  */
-int opipe_push(opipe_t *opipe, void *msg, size_t size, int prod_task, int cons_task);
+int opipe_push(opipe_t *opipe, void *msg, size_t size, int receiver);
 
 /**
  * @brief Gets the buffer pointer to opipe
@@ -65,13 +64,13 @@ void opipe_pop(opipe_t *opipe);
 void opipe_send(opipe_t *opipe, int producer_task, int consumer_addr);
 
 /**
- * @brief Gets the consumer task of the pipe
+ * @brief Gets the receiver task of the pipe
  * 
  * @param opipe Pointer to the pipe
  * 
  * @return int The target task ID
  */
-int opipe_get_cons_task(opipe_t *opipe);
+int opipe_get_receiver(opipe_t *opipe);
 
 /**
  * @brief Transfers a message from the output pipe to a buffer

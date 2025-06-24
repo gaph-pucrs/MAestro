@@ -26,7 +26,9 @@ bool _tl_find_fnc(void *data, void* cmpval)
 	tl_t *tl = (tl_t*)data;
 	int task = *((int*)cmpval);
 
-	return (tl->task == task);
+	int task_cmp = tl->task != -1 ? tl->task : tl->addr;
+
+	return (task_cmp == task);
 }
 
 tl_t *tl_find(list_t *list, int task)
@@ -77,24 +79,6 @@ int tl_get_task(tl_t *tl)
 int tl_get_addr(tl_t *tl)
 {
 	return tl->addr;
-}
-
-void tl_send_dav(tl_t *dav, int cons_task, int cons_addr)
-{
-	packet_t *packet = pkt_slot_get();
-
-	pkt_set_data_av(packet, cons_addr, dav->task, cons_task, dav->addr);
-
-	dmni_send(packet, NULL, 0, false);
-}
-
-void tl_send_msgreq(tl_t *msgreq, int prod_task, int prod_addr)
-{
-	packet_t *packet = pkt_slot_get();
-
-	pkt_set_message_request(packet, prod_addr, msgreq->addr, prod_task, msgreq->task);
-
-	dmni_send(packet, NULL, 0, false);
 }
 
 void tl_set(tl_t *tl, int task, int addr)

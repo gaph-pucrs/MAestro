@@ -17,6 +17,7 @@
 #include <string.h>
 
 #include "dmni.h"
+#include <errno.h>
 
 void ipipe_init(ipipe_t *ipipe)
 {
@@ -44,7 +45,7 @@ bool ipipe_is_read(ipipe_t *ipipe)
 size_t ipipe_transfer(ipipe_t *ipipe, void *offset, void *src, size_t size)
 {
 	if(ipipe->buf == NULL)
-		return -1;
+		return -EINVAL;
 
 	if(ipipe->size < size)
 		return 0;
@@ -75,13 +76,13 @@ int ipipe_receive(ipipe_t *ipipe, void *offset, size_t size)
 		if(tmpbuf == NULL)
 			return -1;
 
-		dmni_receive(tmpbuf, align_size >> 2);
+		dmni_recv(tmpbuf, align_size);
 
 		memcpy(real_ptr, tmpbuf, size);
 		free(tmpbuf);
 	} else {
 		/* Obtain message from DMNI */
-		dmni_receive(real_ptr, align_size >> 2);
+		dmni_recv(real_ptr, align_size);
 	}
 	
 	ipipe->size = size;

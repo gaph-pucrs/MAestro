@@ -11,78 +11,74 @@
  * @brief Defines the DMNI functions for payload handling.
  */
 
-#include "dmni.h"
+#include <dmni.h>
 
 #include <stdlib.h>
+#include <errno.h>
+#include <stdio.h>
 
-#include "mmr.h"
+#include <mmr.h>
 
-void dmni_receive(void *payload_address, size_t payload_size)
+static const size_t FLIT_SIZE = 4;
+
+size_t dmni_recv(void *dst, size_t size)
 {
-	MMR_DMNI_HERMES_SIZE    = (unsigned int)payload_size;
-	MMR_DMNI_HERMES_ADDRESS = (unsigned int)payload_address;
+	if (size % FLIT_SIZE != 0)
+		return -EINVAL;
+	
+	MMR_DMNI_HERMES_SIZE    = size/FLIT_SIZE;
+	MMR_DMNI_HERMES_ADDRESS = (unsigned)dst;
 
-	MMR_DMNI_STATUS |= (1 << DMNI_STATUS_RECV_ACTIVE);
-	while((MMR_DMNI_STATUS & (1 << DMNI_STATUS_RECV_ACTIVE)));
+	MMR_DMNI_IRQ_STATUS |= (1 << DMNI_STATUS_RECV_ACTIVE);
+	while((MMR_DMNI_IRQ_STATUS & (1 << DMNI_STATUS_RECV_ACTIVE)));
+	return MMR_DMNI_HERMES_RECD_CNT;
 }
 
-void dmni_send(packet_t *packet, void *payload, size_t size, bool should_free)
+int dmni_send(void *pkt, size_t pkt_size, bool pkt_free, void *pld, size_t pld_size, bool pld_free)
 {
-	static bool free_outbound = false;
-	static void *outbound = NULL;
+	static bool free_last_pkt = false;
+	static void *outbound_pkt = NULL;
+
+	static bool free_last_pld = false;
+	static void *outbound_pld = NULL;
+
+	if (pkt_size % FLIT_SIZE != 0 || pld_size % FLIT_SIZE != 0)
+		return -EINVAL;
 
 	/* Wait for DMNI to be released */
-	while((MMR_DMNI_STATUS & (1 << DMNI_STATUS_SEND_ACTIVE)));
+	while((MMR_DMNI_IRQ_STATUS & (1 << DMNI_STATUS_SEND_ACTIVE)));
 
-	if(free_outbound)
-		free(outbound);
+	/* Memory management */
+	if (free_last_pkt)
+		free(outbound_pkt);
 
-	outbound = payload;
-	free_outbound = should_free;
+	if (free_last_pld)
+		free(outbound_pld);
 
-	/* Program DMNI */
-	MMR_DMNI_HERMES_SIZE = PKT_SIZE;
-	MMR_DMNI_HERMES_ADDRESS = (unsigned)packet;
+	free_last_pkt = pkt_free;
+	outbound_pkt  = pkt;
 
-	MMR_DMNI_HERMES_SIZE_2 = size;
-	MMR_DMNI_HERMES_ADDRESS_2 = (unsigned)outbound;
-
-	pkt_set_dmni_info(packet, size);
-	MMR_DMNI_STATUS |= (1 << DMNI_STATUS_SEND_ACTIVE);
-}
-
-void dmni_send_raw(unsigned *packet, size_t size)
-{
-	/* Wait for DMNI to be released */
-	// puts("[DMNI] Waiting for DMNI to be released.");
-	while((MMR_DMNI_STATUS & (1 << DMNI_STATUS_SEND_ACTIVE)));
-	// puts("[DMNI] DMNI released, sending.");
+	free_last_pld = pld_free;
+	outbound_pld  = pld;
 
 	/* Program DMNI */
-	MMR_DMNI_HERMES_SIZE = size;
-	MMR_DMNI_HERMES_ADDRESS = (unsigned)packet;
+	MMR_DMNI_HERMES_SIZE      = pkt_size/FLIT_SIZE;
+	MMR_DMNI_HERMES_ADDRESS   = (unsigned)pkt;
 
-	// printf("Addr = %x\n", (unsigned)packet);
-	// for(int i = 0; i < size; i++){
-	// 	printf("%d\n", packet[i]);
-	// }
+	MMR_DMNI_HERMES_SIZE_2    = pld_size/FLIT_SIZE;
+	MMR_DMNI_HERMES_ADDRESS_2 = (unsigned)pld;
 
-	MMR_DMNI_HERMES_SIZE_2 = 0;
-	MMR_DMNI_HERMES_ADDRESS_2 = 0;
+	MMR_DMNI_IRQ_STATUS |= (1 << DMNI_STATUS_SEND_ACTIVE);
 
-	MMR_DMNI_STATUS |= (1 << DMNI_STATUS_SEND_ACTIVE);
-
-	while((MMR_DMNI_STATUS & (1 << DMNI_STATUS_SEND_ACTIVE)));
-	// puts("[DMNI] Sent.");
+	return 0;
 }
 
 void dmni_drop_payload(unsigned payload_size)
 {
 	// printf("Dropping payload - Size = %u\n", payload_size);
-	MMR_DMNI_HERMES_SIZE = payload_size;
-	MMR_DMNI_HERMES_ADDRESS = 0;
+	MMR_DMNI_HERMES_SIZE    = payload_size;
+	MMR_DMNI_HERMES_ADDRESS = (unsigned)NULL;
 	
-	MMR_DMNI_STATUS |= (1 << DMNI_STATUS_RECV_ACTIVE);
-	while((MMR_DMNI_STATUS & (1 << DMNI_STATUS_RECV_ACTIVE)));
+	MMR_DMNI_IRQ_STATUS |= (1 << DMNI_STATUS_RECV_ACTIVE);
 	// printf("Payload dropped\n");
 }

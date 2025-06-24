@@ -19,7 +19,7 @@
 #include "mmr.h"
 #include "dmni.h"
 
-int opipe_push(opipe_t *opipe, void *msg, size_t size, int prod_task, int cons_task)
+int opipe_push(opipe_t *opipe, void *msg, size_t size, int receiver)
 {
 	size_t align_size = (size + 3) & ~3;
 
@@ -28,7 +28,7 @@ int opipe_push(opipe_t *opipe, void *msg, size_t size, int prod_task, int cons_t
 	if(opipe->buf == NULL)
 		return -1;
 
-	opipe->consumer_task = cons_task;
+	opipe->receiver = receiver;
 	opipe->size = size;
 	memcpy(opipe->buf, msg, size);
 
@@ -36,8 +36,6 @@ int opipe_push(opipe_t *opipe, void *msg, size_t size, int prod_task, int cons_t
 
 	for(int i = align_size - padding_size; i < align_size; i++)
 		((char*)opipe->buf)[i] = padding_size;
-
-	MMR_DBG_ADD_PIPE = (prod_task << 16) | (cons_task & 0xFFFF);
 
 	return size;
 }
@@ -56,28 +54,9 @@ void opipe_pop(opipe_t *opipe)
     opipe->buf = NULL;
 }
 
-void opipe_send(opipe_t *opipe, int producer_task, int consumer_addr)
+int opipe_get_receiver(opipe_t *opipe)
 {
-	packet_t *packet = pkt_slot_get();
-
-	pkt_set_message_delivery(
-		packet, 
-		consumer_addr, 
-		producer_task, 
-		opipe->consumer_task, 
-		opipe->size
-	);
-
-	size_t align_size = (opipe->size + 3) & ~3;
-
-	dmni_send(packet, opipe->buf, align_size >> 2, true);
-
-	MMR_DBG_REM_PIPE = (producer_task << 16) | (opipe->consumer_task & 0xFFFF);
-}
-
-int opipe_get_cons_task(opipe_t *opipe)
-{
-	return opipe->consumer_task;
+	return opipe->receiver;
 }
 
 size_t opipe_transfer(opipe_t *opipe, void *dst, size_t size)
@@ -102,10 +81,10 @@ int opipe_receive(opipe_t *opipe, size_t size, int cons_task)
 	if(opipe->buf == NULL)
 		return -1;
 
-	opipe->consumer_task = cons_task;
+	opipe->receiver = cons_task;
 	opipe->size = size;
 
-	dmni_receive(opipe->buf, align_size >> 2);
+	dmni_recv(opipe->buf, align_size);
 
 	return size;
 }

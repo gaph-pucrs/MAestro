@@ -111,28 +111,6 @@ unsigned int sys_get_tick();
 int sys_realtime(tcb_t *tcb, unsigned int period, int deadline, unsigned int exec_time);
 
 /**
- * @brief Calls a syscall from a received message (MESSAGE_DELIVERY)
- * 
- * @param message Pointer to the message
- * @param length Length of the message
- * 
- * @return True if should schedule
- */
-bool sys_kernel_syscall(unsigned *message, int length);
-
-/**
- * @brief Sends a message delivery from kernel
- * 
- * @param buf Pointer to the message
- * @param size Size of the message
- * @param cons_task Consumer task
- * @param cons_addr Consumer address
- * 
- * @return True if should schedule
- */
-bool sys_kernel_writepipe(void *buf, size_t size, int cons_task, int cons_addr);
-
-/**
  * @brief Sends a raw packet
  * 
  * @param tcb Pointer to the producer TCB
@@ -142,13 +120,6 @@ bool sys_kernel_writepipe(void *buf, size_t size, int cons_task, int cons_addr);
  * @return 0 if sent the packet, -EINVAL on invalid argument
  */
 int sys_sendraw(tcb_t *tcb, void *buf, size_t size);
-
-/**
- * @brief Releases peripherals connected to this PE
- * 
- * @return False
- */
-bool sys_release_peripheral();
 
 /**
  * @brief Gets the net address.
@@ -230,17 +201,6 @@ int sys_close(int file);
  * @return int 0
  */
 int sys_get_ctx(tcb_t *tcb, mctx_t *ctx);
-
-/**
- * @brief Halts the execution
- * 
- * @details In fact, this function will stop the scheduler, free resources, and inform the mapper it is ready to indeed halt
- * 
- * @param tl Task location of the halter (mapper) task
- * 
- * @return int 0 case success, EAGAIN if should retry, EFAULT if impossible to halt.
- */
-int sys_halt(tl_t *tl);
 
 /**
  * @brief Ends the simulation

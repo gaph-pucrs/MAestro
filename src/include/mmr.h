@@ -25,19 +25,25 @@
 #define MMR_PLIC_ID					(*(volatile unsigned int*)0x04200004U)
 
 /* DMNI MMR */
-#define MMR_DMNI_STATUS				(*(volatile unsigned int*)0x08000000U)
-#define MMR_DMNI_IP					(*(volatile unsigned int*)0x08000004U)
-#define MMR_DMNI_ADDRESS			(*(volatile unsigned int*)0x08000008U)
-#define MMR_DMNI_MANYCORE_SIZE		(*(volatile unsigned int*)0x0800000CU)
-#define MMR_DMNI_IMEM_PAGE_SIZE		(*(volatile unsigned int*)0x08000010U)
-#define MMR_DMNI_DMEM_PAGE_SIZE		(*(volatile unsigned int*)0x08000014U)
-#define MMR_DMNI_HERMES_SIZE		(*(volatile unsigned int*)0x08000018U)
-#define MMR_DMNI_HERMES_SIZE_2		(*(volatile unsigned int*)0x0800001CU)
-#define MMR_DMNI_HERMES_ADDRESS		(*(volatile unsigned int*)0x08000020U)
-#define MMR_DMNI_HERMES_ADDRESS_2	(*(volatile unsigned int*)0x08000024U)
-#define MMR_DMNI_BRLITE_KSVC		(*(volatile unsigned int*)0x08000028U)
-#define MMR_DMNI_BRLITE_PAYLOAD		(*(volatile unsigned int*)0x0800002CU)
-#define MMR_DMNI_RCV_TIMESTAMP		(*(volatile unsigned int*)0x08000030U)
+#define MMR_DMNI_IRQ_STATUS			(*(volatile unsigned int*)0x08000000U)
+#define MMR_DMNI_IRQ_IP				(*(volatile unsigned int*)0x08000004U)
+
+#define MMR_DMNI_INF_ADDRESS		(*(volatile unsigned int*)0x08000010U)
+#define MMR_DMNI_INF_MANYCORE_SZ	(*(volatile unsigned int*)0x08000014U)
+#define MMR_DMNI_INF_IMEM_PAGE_SZ	(*(volatile unsigned int*)0x08000018U)
+#define MMR_DMNI_INF_DMEM_PAGE_SZ	(*(volatile unsigned int*)0x0800001CU)
+
+#define MMR_DMNI_HERMES_HEAD		(*(volatile unsigned int*)0x08000020U)
+#define MMR_DMNI_HERMES_RECD_CNT	(*(volatile unsigned int*)0x08000024U)
+#define MMR_DMNI_HERMES_TIMESTAMP	(*(volatile unsigned int*)0x08000028U)
+
+#define MMR_DMNI_HERMES_SIZE		(*(volatile unsigned int*)0x08000030U)
+#define MMR_DMNI_HERMES_SIZE_2		(*(volatile unsigned int*)0x08000034U)
+#define MMR_DMNI_HERMES_ADDRESS		(*(volatile unsigned int*)0x08000038U)
+#define MMR_DMNI_HERMES_ADDRESS_2	(*(volatile unsigned int*)0x0800003CU)
+
+#define MMR_DMNI_BRLITE_KSVC		(*(volatile unsigned int*)0x08000040U)
+#define MMR_DMNI_BRLITE_PAYLOAD		(*(volatile unsigned int*)0x08000044U)
 
 /* DEBUG MMR */
 #define MMR_DBG_PUTC				(*(volatile unsigned int*)0x80000000U)

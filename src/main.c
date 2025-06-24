@@ -11,30 +11,30 @@
  * @brief Initialization procedures of the kernel.
  */
 
-#include "mmr.h"
-#include "hal.h"
-#include "pending_service.h"
-#include "task_migration.h"
-#include "stdio.h"
-#include "llm.h"
-#include "interrupts.h"
-#include "pending_msg.h"
-#include "paging.h"
-#include "application.h"
+#include <stdio.h>
+
+#include <mmr.h>
+#include <paging.h>
+#include <application.h>
+#include <task_control.h>
+#include <task_scheduler.h>
+#include <kernel_pipe.h>
+#include <message.h>
+#include <task_migration.h>
+#include <llm.h>
 
 int main()
 {
-	printf("Initializing PE %x\n", MMR_DMNI_ADDRESS);
+	printf("Initializing PE %x\n", MMR_DMNI_INF_ADDRESS);
 
 	page_init();
 	app_init();
 	tcb_init();
 	sched_init();
-	pmsg_init();
-	psvc_init();
+	kpipe_init();
+	msg_pndg_init();
 	tm_init();
 	llm_init();
-	pkt_init();
 
 	MMR_PLIC_IE = (1 << PLIC_IE_DMNI);
 

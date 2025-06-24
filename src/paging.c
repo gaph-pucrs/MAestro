@@ -11,41 +11,41 @@
  * @brief MAestro paging control
  */
 
-#include "paging.h"
+#include <paging.h>
 
 #include <stddef.h>
 #include <stdlib.h>
-#include <stdio.h>
+#include <errno.h>
 
-#include "mmr.h"
+#include <mmr.h>
 
 page_t *_pages = NULL;
 
-void page_init()
+int page_init()
 {
     /**
      * @todo
      * Initialize instruction and data pages
      */
-    const unsigned MAX_TASKS = (MMR_DMNI_MANYCORE_SIZE >> 16);
-    const unsigned PAGE_SIZE = MMR_DMNI_IMEM_PAGE_SIZE;
+    const unsigned MAX_TASKS = (MMR_DMNI_INF_MANYCORE_SZ >> 16);
+    const unsigned PAGE_SIZE = MMR_DMNI_INF_IMEM_PAGE_SZ;
 
     _pages = malloc(MAX_TASKS*sizeof(page_t));
 
-    if(_pages == NULL){
-        puts("FATAL: could not allocate pages structure");
-        while(1);
-    }
+    if (_pages == NULL)
+        return -ENOMEM;
 
     for(int i = 0; i < MAX_TASKS; i++){
         _pages[i].offset = (void*)(PAGE_SIZE * (i + 1));
         _pages[i].free = true;
     }
+
+    return 0;
 }
 
 page_t *page_acquire()
 {
-    const unsigned MAX_TASKS = (MMR_DMNI_MANYCORE_SIZE >> 16);
+    const unsigned MAX_TASKS = (MMR_DMNI_INF_MANYCORE_SZ >> 16);
     for(int i = 0; i < MAX_TASKS; i++){
         if(_pages[i].free){
             _pages[i].free = false;

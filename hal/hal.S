@@ -56,7 +56,7 @@ _start:
 
 	# Load data memory size to sp
 	li		t2, MMR_DMNI_BASE
-	lw		sp, 0x14(t2)
+	lw		sp, 0x1C(t2)
 
 	# Configure virtual memory data size mask
 	addi 	sp, sp, -1
@@ -224,7 +224,7 @@ isr_entry:
 	csrr	t0, mie			
 	csrr	t1, mip
 	and		a0, t0, t1		# Function arg
-	jal		isr_isr
+	jal		isr_dispatcher
 	# The function returned the scheduled task pointer in a0
 
 	# Save kernel context

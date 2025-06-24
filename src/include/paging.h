@@ -25,8 +25,12 @@ typedef struct _page {
 
 /**
  * @brief Initializes pages 
+ * 
+ * @return int
+ *  0 success
+ * -ENOMEM: impossible to allocate memory
  */
-void page_init();
+int page_init();
 
 /**
  * @brief Acquire a page

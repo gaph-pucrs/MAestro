@@ -115,8 +115,10 @@ void sched_remove(sched_t *sched)
 	free(sched);
 
 	if (list_get_size(&_scheds) <= 1){
+		sched_t *rem = list_get_data(list_front(&_scheds));
 		// printf("Disabling MTI\n");
-		_hal_disable_mti();
+		if (rem == NULL || (rem->deadline != SCHED_NO_DEADLINE))
+			_hal_disable_mti();
 	}
 }
 
@@ -136,6 +138,7 @@ void sched_update_slack_time()
 
 bool sched_is_waiting_msgreq(sched_t *sched)
 {
+	// printf("Checking... WAIT REQUEST = %d\n", ((sched->waiting_msg == SCHED_WAIT_REQUEST)));
 	return (sched->waiting_msg == SCHED_WAIT_REQUEST);
 }
 
@@ -151,6 +154,7 @@ bool sched_is_waiting_delivery(sched_t *sched)
 
 void sched_release_wait(sched_t *sched)
 {
+	// printf("CLEARING!\n");
 	sched->waiting_msg = SCHED_WAIT_NO;
 }
 
@@ -316,12 +320,12 @@ void _sched_rt_update(unsigned current_time, unsigned schedule_overhead)
 			}
 
 			/* Monitor RT task after update */
-			if(should_monitor){
+			if (should_monitor) {
 				int id = tcb_get_id(sched->tcb);
 				int appid = id >> 8;
 				int mig_pe = tcb_get_migrate_addr(sched->tcb);
 				
-				if(appid != 0 && mig_pe == -1 && sched->waiting_msg == SCHED_WAIT_NO){
+				if (appid != 0 && mig_pe == -1 && sched->waiting_msg == SCHED_WAIT_NO) {
 					llm_rt(
 						&(sched->last_monitored), 
 						id, 
@@ -364,14 +368,19 @@ sched_t *_sched_lst(unsigned current_time)
 	sched_t *scheduled = NULL;
 
 	list_entry_t *entry = list_front(&_scheds);
-	while(entry != NULL){
+	while (entry != NULL) {
 		sched_t *sched = list_get_data(entry);
+
+		// printf("Trying %x\n", sched->tcb->id);
+		// printf("Deadline = %d\n", sched->deadline);
+		// printf("STATUS = %d\n", sched->status);
+		// printf("WAITING = %d\n", sched->waiting_msg);
 		
-		if(
+		if (
 			sched->deadline != SCHED_NO_DEADLINE && 
 			sched->status == SCHED_READY && 
 			sched->waiting_msg == SCHED_WAIT_NO
-		){
+		) {
 			if(scheduled == NULL || (sched->slack_time < scheduled->slack_time))
 				scheduled = sched;
 		}
@@ -380,14 +389,14 @@ sched_t *_sched_lst(unsigned current_time)
 	}
 
 	/* If no real-time tasks are scheduled, selects the next round-robin BEST EFFORT task */
-	if(scheduled == NULL){
+	if (scheduled == NULL) {
 		/* Fire the round robin */
 		entry = list_find(&_scheds, _last_scheduled, NULL);
 		
-		if(entry != NULL)
+		if (entry != NULL)
 			entry = list_next(entry);
 
-		while(entry != NULL){
+		while (entry != NULL) {
 			sched_t *sched = list_get_data(entry);
 
 			if(sched->status == SCHED_READY && sched->waiting_msg == SCHED_WAIT_NO){
@@ -398,9 +407,9 @@ sched_t *_sched_lst(unsigned current_time)
 			entry = list_next(entry);
 		}
 
-		if(scheduled == NULL){
+		if (scheduled == NULL) {
 			entry = list_front(&_scheds);
-			while(entry != NULL){
+			while (entry != NULL) {
 				sched_t *sched = list_get_data(entry);
 
 				if(sched->status == SCHED_READY && sched->waiting_msg == SCHED_WAIT_NO){
@@ -408,7 +417,7 @@ sched_t *_sched_lst(unsigned current_time)
 					break;
 				}
 
-				if(sched == _last_scheduled)
+				if (sched == _last_scheduled)
 					break;
 				
 				entry = list_next(entry);
@@ -417,7 +426,7 @@ sched_t *_sched_lst(unsigned current_time)
 	}
 
 	/* If at least one task has been selected (BEST EFFORT or REAL TIME) */
-	if(scheduled != NULL){
+	if (scheduled != NULL) {
 		_last_scheduled = scheduled;
 
 		scheduled->status = SCHED_RUNNING;
@@ -467,8 +476,9 @@ void sched_run()
 
 	sched_t *sched = _sched_lst(scheduler_call_time);
 	
-	if(sched != NULL){
+	if (sched != NULL) {
 		current = sched->tcb;
+		// printf("Current = %x\n", current->id);
 		sched_report(tcb_get_id(current));
 		/**
 		 * @todo
@@ -477,6 +487,7 @@ void sched_run()
 		MMR_RTC_MTIMECMPH = 0;
 		MMR_RTC_MTIMECMP = MMR_RTC_MTIME + time_slice;
 	} else {
+		// printf("CURRENT IS NULL!\n");
 		current = NULL;
 		sched_update_idle_time();
 	}
@@ -513,6 +524,8 @@ void sched_real_time_task(sched_t *sched, unsigned period, int deadline, unsigne
 	sched->utilization = ((execution_time*100) / period) + 1; //10 is the inherent task overhead
 
 	cpu_utilization += sched->utilization;
+
+	_hal_enable_mti();
 }
 
 sched_wait_t sched_get_waiting_msg(sched_t *sched)

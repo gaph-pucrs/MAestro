@@ -16,8 +16,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "packet.h"
-
 typedef struct _bcast {
 	uint8_t  service;
 	uint16_t src_addr;
