@@ -36,11 +36,11 @@ all: i$(TARGET).bin d$(TARGET).bin $(TARGET).lst
 
 d$(TARGET).bin: $(TARGET).elf
 	@printf "${RED}Generating %s...${NC}\n" "$@"
-	@$(OBJCOPY) $< $@ -O binary -j .rodata -j .data -j .sdata
+	@$(OBJCOPY) $< $@ -O binary -j .data
 
 i$(TARGET).bin: $(TARGET).elf
 	@printf "${RED}Generating %s...${NC}\n" "$@"
-	@$(OBJCOPY) $< $@ -O binary -j .init -j .text
+	@$(OBJCOPY) $< $@ -O binary -j .text
 
 $(TARGET).elf: $(CCOBJ) $(ASOBJ) $(LIBMUTILS)
 	@printf "${RED}Linking %s...${NC}\n" "$@"

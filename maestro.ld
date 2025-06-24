@@ -3,12 +3,9 @@ SECTIONS
 {
   /* Read-only sections, merged into text segment: */
   PROVIDE (__executable_start = SEGMENT_START("text-segment", 0)); . = SEGMENT_START("text-segment", 0);
-  .init           :
-  {
-    KEEP (*(SORT_NONE(.init)))
-  }
   .text           :
   {
+    KEEP (*(SORT_NONE(.init)))
     *(.text.unlikely .text.*_unlikely .text.unlikely.*)
     *(.text.exit .text.exit.*)
     *(.text.startup .text.startup.*)
@@ -17,34 +14,30 @@ SECTIONS
     *(.text .stub .text.* .gnu.linkonce.t.*)
     /* .gnu.warning sections are handled specially by elf.em.  */
     *(.gnu.warning)
+    /* . = ALIGN(4); */
   }
   PROVIDE (__etext = .);
   PROVIDE (_etext = .);
   PROVIDE (etext = .);
   . = 0x01000000;
-  .rodata         : { *(.rodata .rodata.* .gnu.linkonce.r.*) }
   .data           :
   {
+    *(.rodata .rodata.* .gnu.linkonce.r.*)
     __DATA_BEGIN__ = .;
     *(.data .data.* .gnu.linkonce.d.*)
     SORT(CONSTRUCTORS)
-  }
-  .sdata          :
-  {
     __SDATA_BEGIN__ = .;
     *(.srodata.cst16) *(.srodata.cst8) *(.srodata.cst4) *(.srodata.cst2) *(.srodata .srodata.*)
     *(.sdata .sdata.* .gnu.linkonce.s.*)
+    /* . = ALIGN(4); */
   }
   _edata = .; PROVIDE (edata = .);
   __bss_start = .;
-  .sbss           :
-  {
-    *(.dynsbss)
-    *(.sbss .sbss.* .gnu.linkonce.sb.*)
-    *(.scommon)
-  }
   .bss            :
   {
+   *(.dynsbss)
+   *(.sbss .sbss.* .gnu.linkonce.sb.*)
+   *(.scommon)
    *(.dynbss)
    *(.bss .bss.* .gnu.linkonce.b.*)
    *(COMMON)
