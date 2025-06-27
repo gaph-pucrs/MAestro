@@ -15,6 +15,7 @@
 
 #include <stdlib.h>
 #include <errno.h>
+#include <stdio.h>
 
 #include <task_location.h>
 #include <task_migration.h>
@@ -34,8 +35,11 @@ bool halt_pndg()
 
 int halt_try()
 {
-	if (!kpipe_empty())
+	// printf("Trying to halt PE...\n");
+	if (!kpipe_empty()) {
+		// printf("Not halting due to pending message\n");
 		return -EAGAIN;
+	}
 
 	/* Check if there are migrated tasks in the list and halt later */
 	if (!(tm_empty() && msg_pndg_empty()))

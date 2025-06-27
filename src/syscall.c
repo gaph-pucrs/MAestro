@@ -279,7 +279,6 @@ int sys_writepipe(tcb_t *tcb, void *buf, size_t size, int receiver, bool sync)
 		/* Can send immediately */
 		int req_addr = tl_get_addr(request);
 		msg_send_message_delivery(opipe->buf, opipe->size, MMR_DMNI_INF_ADDRESS, req_addr, sender, receiver);
-		// printf("* %x->%x D\n", sender, receiver);
 
 		tcb_destroy_opipe(tcb);
 		MMR_DBG_REM_PIPE = ((sender << 16) | (receiver & 0xFFFF));
@@ -288,7 +287,6 @@ int sys_writepipe(tcb_t *tcb, void *buf, size_t size, int receiver, bool sync)
 		tl_remove(msgreqs, request);
 		MMR_DBG_REM_REQ = (sender << 16) | (receiver & 0xFFFF);
 	} else if (sync) {
-		// printf("* %x->%x A\n", sender, receiver);
 		if (target == MMR_DMNI_INF_ADDRESS) {
 			/* Insert a DATA_AV to consumer table */
 			tcb_t *recv_tcb = tcb_find(receiver);
@@ -334,8 +332,10 @@ int sys_readpipe(tcb_t *tcb, void *buf, size_t size, int sender, bool sync)
 		return -EAGAIN;
 	}
 
-	if (buf == NULL)
+	if (buf == NULL) {
+		// printf("READPIPE WITH NULL BUFFER\n");
 		return -EINVAL;
+	}
 
 	const int receiver = tcb_get_id(tcb);
 
@@ -437,8 +437,10 @@ int sys_readpipe(tcb_t *tcb, void *buf, size_t size, int sender, bool sync)
 
 	/* Stores the message pointer to receive */
 	ipipe = tcb_create_ipipe(tcb);
-	if (ipipe == NULL)
+	if (ipipe == NULL) {
+		// printf("NOT ENOUGH MEMORY TO CREATE IPIPE\n");
 		return -ENOMEM;
+	}
 
 	// printf("Allocated ipipe at %p\n", current->pipe_in);
 	ipipe_set(ipipe, buf, size);
@@ -452,7 +454,6 @@ int sys_readpipe(tcb_t *tcb, void *buf, size_t size, int sender, bool sync)
 	} else {
 		/* Remote sender : Sends the message request */
 		msg_send_hdshk(MMR_DMNI_INF_ADDRESS, source, sender, receiver, MESSAGE_REQUEST);
-		// printf("* %x->%x R\n", receiver, sender);
 	}
 
 	/* Sets task as waiting blocking its execution, it will execute again when the message is produced by a WRITEPIPE or incoming MSG_DELIVERY */

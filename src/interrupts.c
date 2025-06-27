@@ -62,7 +62,6 @@ tcb_t *isr_dispatcher(unsigned status)
 		void *packet = hermes_recv_pkt(service);
 		if (packet == NULL) {
 			printf("ERROR: Invalid packet handling %lx\n", head);
-			while(1);
 			return NULL;
 		}
 
@@ -76,7 +75,11 @@ tcb_t *isr_dispatcher(unsigned status)
 				return NULL;
 			}
 		} else {
-			call_scheduler = _isr_handle_pkt(service, packet);
+			int ret = _isr_handle_pkt(service, packet);
+			if (ret < 0) {
+				printf("ERROR: handle packet returned %d\n", ret);
+			}
+			call_scheduler = (ret == 1);
 			free(packet);
 		}
 	} else if ((status & (1 << RISCV_IRQ_MEI)) && (MMR_DMNI_IRQ_IP & (1 << DMNI_IP_PENDING))) {

@@ -107,8 +107,10 @@ int msg_recv_data_av(msg_hdshk_t *hdshk)
     /* Insert the packet to TCB */
     list_t *davs = tcb_get_davs(recv_tcb);
     tl_t   *dav  = tl_emplace_back(davs, hdshk->sender, hdshk->source);
-    if (dav == NULL)
+    if (dav == NULL) {
+        // printf("*************** NO MEMORY TO STORE DAV \n");
         return -ENOMEM;
+    }
 
     MMR_DBG_ADD_DAV = (hdshk->sender << 16) | (hdshk->receiver & 0xFFFF);
 
@@ -139,7 +141,6 @@ int msg_recv_message_request(msg_hdshk_t *hdshk)
 		/* Send it like a MESSAGE_DELIVERY */
         int ret = msg_send_message_delivery(opipe->buf, opipe->size, MMR_DMNI_INF_ADDRESS, hdshk->source, hdshk->sender, hdshk->receiver);
         MMR_DBG_REM_PIPE = (hdshk->sender << 16) | (hdshk->receiver & 0xFFFF);
-		// printf("* %x->%x D\n", hdshk->sender, hdshk->receiver);
 
 		kpipe_remove(opipe);
 
@@ -218,7 +219,6 @@ int msg_recv_message_request(msg_hdshk_t *hdshk)
     if (ret < 0)
         return ret;
 
-    // printf("* %x->%x D\n", hdshk->sender, hdshk->receiver);
     tcb_destroy_opipe(send_tcb);
 
 	/* Release task for execution if it was blocking another send */
@@ -254,19 +254,27 @@ int msg_recv_message_delivery(msg_dlv_t *dlv)
 	}
 
     tcb_t *recv_tcb = tcb_find(dlv->hdshk.receiver);
-    if (recv_tcb == NULL) /* @todo Create an exception and abort task? */
+    if (recv_tcb == NULL) {
+        /* @todo Create an exception and abort task? */
+        // printf("TASK NOT FOUND\n");
         return -EINVAL;
+    } 
 
     ipipe_t *ipipe = tcb_get_ipipe(recv_tcb);
-    if (ipipe == NULL)  /* @todo Create an exception and abort task? */
+    if (ipipe == NULL) {
+        /* @todo Create an exception and abort task? */
+        // printf("IPIPE NOT FOUND\n");
 		return -EINVAL;
+    }
 
     /* Update task location in case of migration */
     _msg_update_tl(recv_tcb, dlv->hdshk.source, dlv->hdshk.sender, recv_app);
 
     int result = ipipe_receive(ipipe, tcb_get_offset(recv_tcb), dlv->size);
-    if (result != dlv->size)
+    if (result != dlv->size) {
+        // printf("Returned %d from ipipe_receive\n", result);
 		dmni_drop_payload(dlv->size - result);
+    }
 
     /* @todo Monitor only if message was not redirected from migration */
     int8_t send_app = (dlv->hdshk.sender >> 8);
@@ -295,6 +303,7 @@ int msg_recv_message_delivery(msg_dlv_t *dlv)
 
 int msg_send_hdshk(uint32_t source, uint32_t target, uint16_t sender, uint16_t receiver, uint8_t service)
 {
+    // printf("* %x->%x %c\n", receiver, sender, (service == MESSAGE_REQUEST) ? 'R' : 'A');
     msg_hdshk_t *hdshk = malloc(sizeof(msg_hdshk_t));
     if (hdshk == NULL)
         return -ENOMEM;
@@ -311,6 +320,7 @@ int msg_send_hdshk(uint32_t source, uint32_t target, uint16_t sender, uint16_t r
 
 int msg_send_message_delivery(void *pld, size_t size, uint32_t source, uint32_t target, uint16_t sender, uint16_t receiver)
 {
+    // printf("* %x->%x D\n", sender, receiver);
     msg_dlv_t *dlv = malloc(sizeof(msg_dlv_t));
     if (dlv == NULL)
         return -ENOMEM;

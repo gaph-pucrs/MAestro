@@ -15,6 +15,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "dmni.h"
 #include <errno.h>
@@ -62,11 +63,13 @@ size_t ipipe_transfer(ipipe_t *ipipe, void *offset, void *src, size_t size)
 
 int ipipe_receive(ipipe_t *ipipe, void *offset, size_t size)
 {
-	if(ipipe->buf == NULL)
+	if (ipipe->buf == NULL)
 		return -1;
 
-	if(ipipe->size < size)
+	if (ipipe->size < size) {
+		// printf("Unable to receive %d size with buffer of %d size\n", size, ipipe->size);
 		return 0;
+	}
 
 	void *real_ptr = (void*)((unsigned)ipipe->buf | (unsigned)offset);
 	size_t align_size = (size + 3) & ~3;
