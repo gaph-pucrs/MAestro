@@ -163,7 +163,16 @@ int msg_recv_message_request(msg_hdshk_t *hdshk)
 
     /* Task found. Now search for message. */
 	opipe_t *opipe = tcb_get_opipe(send_tcb);
-    if (opipe == NULL || opipe_get_receiver(opipe) != (hdshk->receiver != -1 ? hdshk->receiver : (hdshk->source & MEMPHIS_FORCE_PORT) ? hdshk->source : (hdshk->source | MEMPHIS_KERNEL_MSG))) {
+    int receiver_id = hdshk->receiver;
+    if (receiver_id == -1) {
+        receiver_id = hdshk->source;
+        if (hdshk->source & MEMPHIS_FORCE_PORT)
+            receiver_id |= MEMPHIS_FORCE_PORT;
+        else
+            receiver_id |= MEMPHIS_KERNEL_MSG;
+    }
+
+    if ((opipe == NULL) || (opipe_get_receiver(opipe) != receiver_id)) {
         /* No message in producer's pipe to the consumer task */
 		/* Insert the message request in the producer's TCB */
 		// printf("Message not found. Inserting message request.\n");
