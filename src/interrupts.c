@@ -62,6 +62,7 @@ tcb_t *isr_dispatcher(unsigned status)
 		void *packet = hermes_recv_pkt(service);
 		if (packet == NULL) {
 			printf("ERROR: Invalid packet handling %lx\n", head);
+			MMR_DBG_HALT = 1;
 			return NULL;
 		}
 
