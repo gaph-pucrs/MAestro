@@ -18,6 +18,7 @@
 #include <stdio.h>
 
 #include <mmr.h>
+#include <hermes.h>
 
 static const size_t FLIT_SIZE = 4;
 
@@ -41,6 +42,11 @@ int dmni_send(void *pkt, size_t pkt_size, bool pkt_free, void *pld, size_t pld_s
 
 	static bool free_last_pld = false;
 	static void *outbound_pld = NULL;
+
+	if ((((hermes_t*)pkt)->address == MMR_DMNI_INF_ADDRESS) && (((hermes_t*)pkt)->flags == 0)) {
+		printf("ERROR: Will not send to itself\n");
+		return -EINVAL;
+	}
 
 	if (pkt_size % FLIT_SIZE != 0 || pld_size % FLIT_SIZE != 0)
 		return -EINVAL;
