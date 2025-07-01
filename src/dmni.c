@@ -30,7 +30,7 @@ size_t dmni_recv(void *dst, size_t size)
 	MMR_DMNI_HERMES_SIZE    = size/FLIT_SIZE;
 	MMR_DMNI_HERMES_ADDRESS = (unsigned)dst;
 
-	MMR_DMNI_IRQ_STATUS |= (1 << DMNI_STATUS_RECV_ACTIVE);
+	MMR_DMNI_IRQ_STATUS |= (1 << DMNI_STATUS_RECV_START);
 	while((MMR_DMNI_IRQ_STATUS & (1 << DMNI_STATUS_RECV_ACTIVE)));
 	return MMR_DMNI_HERMES_RECD_CNT;
 }
@@ -74,7 +74,7 @@ int dmni_send(void *pkt, size_t pkt_size, bool pkt_free, void *pld, size_t pld_s
 	MMR_DMNI_HERMES_SIZE_2    = pld_size/FLIT_SIZE;
 	MMR_DMNI_HERMES_ADDRESS_2 = (unsigned)pld;
 
-	MMR_DMNI_IRQ_STATUS |= (1 << DMNI_STATUS_SEND_ACTIVE);
+	MMR_DMNI_IRQ_STATUS |= (1 << DMNI_STATUS_SEND_START);
 
 	return 0;
 }
@@ -85,6 +85,6 @@ void dmni_drop_payload(unsigned payload_size)
 	MMR_DMNI_HERMES_SIZE    = payload_size;
 	MMR_DMNI_HERMES_ADDRESS = (unsigned)NULL;
 	
-	MMR_DMNI_IRQ_STATUS |= (1 << DMNI_STATUS_RECV_ACTIVE);
+	MMR_DMNI_IRQ_STATUS |= (1 << DMNI_STATUS_RECV_START);
 	// printf("Payload dropped\n");
 }
