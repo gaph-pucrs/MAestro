@@ -19,6 +19,7 @@
 #include <task_control.h>
 #include <task_scheduler.h>
 #include <kernel_pipe.h>
+#include <mpipe.h>
 #include <message.h>
 #include <task_migration.h>
 #include <llm.h>
@@ -35,6 +36,7 @@ int main()
 	msg_pndg_init();
 	tm_init();
 	llm_init();
+	mpipe_init();
 
 	MMR_PLIC_IE = (1 << PLIC_IE_DMNI);
 

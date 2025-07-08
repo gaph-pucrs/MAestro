@@ -45,6 +45,11 @@
 #define MMR_DMNI_BRLITE_KSVC		(*(volatile unsigned int*)0x08000040U)
 #define MMR_DMNI_BRLITE_PAYLOAD		(*(volatile unsigned int*)0x08000044U)
 
+#define MMR_DMNI_MON_BASE			(*(volatile unsigned int*)0x08000050U)
+#define MMR_DMNI_MON_LENGTH			(*(volatile unsigned int*)0x08000054U)
+#define MMR_DMNI_MON_SEM_OC			(*(volatile unsigned int*)0x08000058U)
+#define MMR_DMNI_MON_SEM_AV			(*(volatile unsigned int*)0x0800005CU)
+
 /* DEBUG MMR */
 #define MMR_DBG_PUTC				(*(volatile unsigned int*)0x80000000U)
 #define MMR_DBG_HALT				(*(volatile unsigned int*)0x80000004U)
@@ -76,7 +81,8 @@ enum DMNI_STATUS {
 	DMNI_STATUS_REL_PERIPHERAL = 3,
 	DMNI_STATUS_SEND_ACTIVE,
 	DMNI_STATUS_RECV_ACTIVE,
-	DMNI_STATUS_LOCAL_BUSY
+	DMNI_STATUS_LOCAL_BUSY,
+	DMNI_STATUS_MON_ACTIVE
 };
 
 enum DMNI_IP {

@@ -223,3 +223,14 @@ int sys_end_simulation(tcb_t *tcb);
  * @return 0
  */
 int sys_safelog(unsigned snd_time, unsigned inf_time, unsigned edge, unsigned inf_lat, unsigned lat_pred, unsigned lat_mon);
+
+/**
+ * @brief Creates the monitoring FIFO
+ * 
+ * @param tcb Pointer to the TCB
+ * @param size Number of bytes monitored
+ * @param len Number of entries in FIFO
+ * 
+ * @return see mpipe_create
+ */
+int sys_mkfifo(tcb_t *tcb, int size, int len);

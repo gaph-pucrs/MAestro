@@ -28,6 +28,7 @@
 #include <kernel_pipe.h>
 #include <message.h>
 #include <halt.h>
+#include <mpipe.h>
 
 #include <memphis/services.h>
 #include <memphis/messaging.h>
@@ -110,6 +111,9 @@ tcb_t *sys_syscall(
 				break;
 			case SYS_safelog:
 				ret = sys_safelog(arg1, arg2, arg3, arg4, arg5, arg6);
+				break;
+			case SYS_mkfifo:
+				ret = sys_mkfifo(current, arg1, arg2);
 				break;
 			default:
 				printf("ERROR: Unknown syscall %d\n", number);
@@ -338,6 +342,13 @@ int sys_readpipe(tcb_t *tcb, void *buf, size_t size, int sender, bool sync)
 	}
 
 	const int receiver = tcb_get_id(tcb);
+
+	if (mpipe_wait(receiver, size) > 0) {
+		buf = (void*)((unsigned)buf | (unsigned)tcb_get_offset(tcb));
+		size_t ret = mpipe_read(buf);
+		mpipe_post();
+		return ret;
+	}
 
 	uint32_t source;
 	if (sync) {
@@ -626,4 +637,10 @@ int sys_safelog(unsigned snd_time, unsigned inf_time, unsigned edge, unsigned in
 	MMR_DBG_SAFE_LAT_PRED = lat_pred;
 	MMR_DBG_SAFE_LAT_MON  = lat_mon;
 	return 0;
+}
+
+int sys_mkfifo(tcb_t *tcb, int size, int len)
+{
+	const int id = tcb_get_id(tcb);
+	return mpipe_create(size, len, id);
 }
