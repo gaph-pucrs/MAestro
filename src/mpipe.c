@@ -90,3 +90,8 @@ int mpipe_write(void *buf, size_t size, int16_t addr)
 
     return dmni_send(packet, sizeof(hermes_t) + size, true, NULL, 0, false);
 }
+
+int mpipe_owner()
+{
+    return _pipe.owner;
+}

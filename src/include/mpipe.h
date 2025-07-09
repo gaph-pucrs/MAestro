@@ -78,3 +78,12 @@ void mpipe_post();
  * -ENOMEM if cannot allocate the message packet
  */
 int mpipe_write(void *buf, size_t size, int16_t addr);
+
+/**
+ * @brief Gets the ID of the mpipe owner
+ * 
+ * @return int
+ *  id of the mpipe owner
+ * -1 if not initialized
+ */
+int mpipe_owner();

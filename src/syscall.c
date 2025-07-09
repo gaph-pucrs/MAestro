@@ -359,6 +359,7 @@ int sys_readpipe(tcb_t *tcb, void *buf, size_t size, int sender, bool sync)
 			sched_t *sched = tcb_get_sched(tcb);
 			sched_set_wait_dav(sched);
 			schedule_after_syscall = 1;
+
 			return -EAGAIN;
 		}
 

@@ -27,6 +27,7 @@
 #include <mmr.h>
 #include <llm.h>
 #include <task_allocation.h>
+#include <mpipe.h>
 
 /** 
  * @brief Handles the packet coming from the NoC.
@@ -109,6 +110,20 @@ tcb_t *isr_dispatcher(unsigned status)
 			);
 
 			tcb_abort_task(current);
+		}
+	} 
+	
+	if ((status & (1 << RISCV_IRQ_MEI)) && (MMR_DMNI_IRQ_IP & (1 << DMNI_IP_MONITOR))) {
+		int id = mpipe_owner();
+		if (id != -1) {
+			tcb_t *monitor = tcb_find(id);
+			if (monitor != NULL) {
+				sched_t *sched = tcb_get_sched(monitor);
+				if (sched_is_waiting_dav(sched)) {
+					sched_release_wait(sched);
+					call_scheduler = true;
+				}
+			}
 		}
 	}
 

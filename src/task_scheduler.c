@@ -26,11 +26,12 @@
 #include <memphis/services.h>
 #include <memphis/monitor.h>
 
-#include "interrupts.h"
-#include "task_control.h"
-#include "dmni.h"
-#include "llm.h"
-#include "mmr.h"
+#include <interrupts.h>
+#include <task_control.h>
+#include <dmni.h>
+#include <llm.h>
+#include <mmr.h>
+#include <mpipe.h>
 
 static const unsigned SCHED_MAX_TIME_SLICE = 100000;	//!< Standard time slice value for task execution
 static const unsigned REPORT_SCHEDULER = 0x40000;
@@ -154,6 +155,9 @@ bool sched_is_waiting_delivery(sched_t *sched)
 
 void sched_release_wait(sched_t *sched)
 {
+	if (sched->waiting_msg == SCHED_WAIT_DATA_AV && tcb_get_id(sched->tcb) == mpipe_owner())
+		MMR_DMNI_IRQ_IE &= ~(1 << DMNI_IE_MONITOR);
+	
 	// printf("CLEARING!\n");
 	sched->waiting_msg = SCHED_WAIT_NO;
 }
@@ -175,6 +179,9 @@ void sched_set_wait_msgreq(sched_t *sched)
 
 void sched_set_wait_dav(sched_t *sched)
 {
+	if (tcb_get_id(sched->tcb) == mpipe_owner())
+		MMR_DMNI_IRQ_IE |= (1 << DMNI_IE_MONITOR);
+
 	sched->waiting_msg = SCHED_WAIT_DATA_AV;
 }
 

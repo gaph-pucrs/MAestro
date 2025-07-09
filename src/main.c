@@ -38,7 +38,8 @@ int main()
 	llm_init();
 	mpipe_init();
 
-	MMR_PLIC_IE = (1 << PLIC_IE_DMNI);
+	MMR_DMNI_IRQ_IE = ((1 << DMNI_IE_PENDING) | (1 << DMNI_IE_BRLITE) | (1 << DMNI_IE_HERMES));
+	MMR_PLIC_IE     = (1 << PLIC_IE_DMNI);
 
 	return 0;
 }

@@ -26,7 +26,8 @@
 
 /* DMNI MMR */
 #define MMR_DMNI_IRQ_STATUS			(*(volatile unsigned int*)0x08000000U)
-#define MMR_DMNI_IRQ_IP				(*(volatile unsigned int*)0x08000004U)
+#define MMR_DMNI_IRQ_IE				(*(volatile unsigned int*)0x08000004U)
+#define MMR_DMNI_IRQ_IP				(*(volatile unsigned int*)0x08000008U)
 
 #define MMR_DMNI_INF_ADDRESS		(*(volatile unsigned int*)0x08000010U)
 #define MMR_DMNI_INF_MANYCORE_SZ	(*(volatile unsigned int*)0x08000014U)
@@ -85,8 +86,16 @@ enum DMNI_STATUS {
 	DMNI_STATUS_MON_ACTIVE
 };
 
+enum DMNI_IE {
+	DMNI_IE_HERMES = 1,
+	DMNI_IE_BRLITE,
+	DMNI_IE_PENDING,
+	DMNI_IE_MONITOR
+};
+
 enum DMNI_IP {
 	DMNI_IP_HERMES = 1,
 	DMNI_IP_BRLITE,
-	DMNI_IP_PENDING
+	DMNI_IP_PENDING,
+	DMNI_IP_MONITOR
 };
