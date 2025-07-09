@@ -64,3 +64,17 @@ size_t mpipe_read(void *dst);
  * @brief Posts the mpipe semaphore for available spaces in FIFO
  */
 void mpipe_post();
+
+/**
+ * @brief Writes a message to the mpipe, sending it through NoC
+ * 
+ * @param buf Pointer to the message buffer
+ * @param size Size of the message (multiple of 4)
+ * @param addr Address of the destination PE
+ * 
+ * @return
+ *  0 success
+ * -EINVAL if size is not multiple of 4
+ * -ENOMEM if cannot allocate the message packet
+ */
+int mpipe_write(void *buf, size_t size, int16_t addr);
