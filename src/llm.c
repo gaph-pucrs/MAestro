@@ -19,6 +19,7 @@
 #include <interrupts.h>
 #include <broadcast.h>
 #include <kernel_pipe.h>
+#include <mpipe.h>
 
 #include <memphis.h>
 #include <memphis/monitor.h>
@@ -87,5 +88,5 @@ void llm_sec(unsigned timestamp, unsigned size, int src, int dst, int prod, int 
 	monitor.hops      = abs(src_x - dst_x) + abs(src_y - dst_y);
 	monitor.size      = size;
 
-	kpipe_add(&monitor, sizeof(memphis_sec_monitor_t), _observers[MON_SEC].task, _observers[MON_SEC].addr);
+	mpipe_write(&monitor, sizeof(memphis_sec_monitor_t), _observers[MON_SEC].addr);
 }
