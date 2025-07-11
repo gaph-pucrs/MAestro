@@ -36,18 +36,20 @@ void mpipe_init();
 int mpipe_create(size_t size, size_t len, int task);
 
 /**
- * @brief Waits for the mpipe semaphore for available messages
+ * @brief Gets the number of messages in the mpipe
  * 
- * @param id ID of the reading task
- * @param max_size Size allocated at receiving task buffer
- * 
- * @return
- * >0 number of available messages
- *  0 unavailable (wait fail)
- * -EAGAIN mpipe not available
- * -EINVAL can't receive message (not directed to this task/not enough space)
+ * @return int number of messages in the mpipe
  */
-int mpipe_wait(int id, size_t max_size);
+int mpipe_getvalue();
+
+/**
+ * @brief Tries to wait for the mpipe semaphore for available messages
+ *  
+ * @return
+ *  0 success
+ * -EAGAIN mpipe not available
+ */
+int mpipe_trywait();
 
 /**
  * @brief Transfers the monitoring message
@@ -55,10 +57,11 @@ int mpipe_wait(int id, size_t max_size);
  * @details Never call this function without mpipe_wait returning >0 first
  * 
  * @param dst Pointer to destination buffer
+ * @param size Size of the destination buffer (must be >= mpipe size)
  * 
  * @return size of message read
  */
-size_t mpipe_read(void *dst);
+int mpipe_read(void *dst, size_t size);
 
 /**
  * @brief Posts the mpipe semaphore for available spaces in FIFO

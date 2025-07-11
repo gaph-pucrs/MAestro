@@ -44,25 +44,31 @@ int mpipe_create(size_t size, size_t len, int task)
     _pipe.index  = 0;
 
     MMR_DMNI_MON_BASE   = (unsigned)_pipe.buffer;
-    MMR_DMNI_MON_SEM_OC = 0;
     MMR_DMNI_MON_SEM_AV = len;
+    MMR_DMNI_MON_FLITS  = size/4;
+
     return 0;
 }
 
-int mpipe_wait(int id, size_t max_size)
+int mpipe_getvalue()
 {
-    if (_pipe.buffer == NULL)
-        return -EAGAIN;
-
-    if (id != _pipe.owner || max_size < _pipe.size)
-        return -EINVAL;
-
     return MMR_DMNI_MON_SEM_OC;
 }
 
-size_t mpipe_read(void *dst)
+int mpipe_trywait()
 {
-    /* Semaphore should have waited here */
+    if (MMR_DMNI_MON_SEM_OC == 0)
+        return -EAGAIN;
+
+    MMR_DMNI_MON_SEM_OC = -1;
+    return 0;
+}
+
+int mpipe_read(void *dst, size_t size)
+{
+    if (_pipe.buffer == NULL || _pipe.size > size)
+        return -EINVAL;
+
     memcpy(dst, _pipe.buffer + _pipe.index*_pipe.size, _pipe.size);
     _pipe.index = (_pipe.index + 1) % _pipe.length;
 
