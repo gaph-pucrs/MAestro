@@ -22,6 +22,7 @@
 #include <message.h>
 #include <mmr.h>
 #include <kernel_pipe.h>
+#include <mpipe.h>
 
 #include <memphis/services.h>
 #include <memphis/messaging.h>
@@ -36,7 +37,7 @@ bool halt_pndg()
 int halt_try()
 {
 	// printf("Trying to halt PE...\n");
-	if (!kpipe_empty()) {
+	if (!kpipe_empty() || mpipe_getvalue() > 0) {
 		// printf("Not halting due to pending message\n");
 		return -EAGAIN;
 	}

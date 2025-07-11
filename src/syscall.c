@@ -343,18 +343,22 @@ int sys_readpipe(tcb_t *tcb, void *buf, size_t size, int sender, bool sync)
 
 	const int receiver = tcb_get_id(tcb);
 
-	if (mpipe_wait(receiver, size) > 0) {
-		buf = (void*)((unsigned)buf | (unsigned)tcb_get_offset(tcb));
-		size_t ret = mpipe_read(buf);
-		mpipe_post();
-		return ret;
-	}
-
 	uint32_t source;
 	if (sync) {
 		list_t *davs = tcb_get_davs(tcb);
 		tl_t   *dav  = list_get_data(list_front(davs));
 		if (dav == NULL) {
+			if (receiver == mpipe_owner() && mpipe_trywait() == 0) {
+				buf = (void*)((unsigned)buf | (unsigned)tcb_get_offset(tcb));
+				size_t ret = mpipe_read(buf, size);
+				mpipe_post();
+				if (halt_pndg()) {
+					if (halt_try() == 0)
+						halt_clear();
+				}
+				return ret;
+			}
+
 			/* Block task and wait for DATA_AV packet */
 			sched_t *sched = tcb_get_sched(tcb);
 			sched_set_wait_dav(sched);
