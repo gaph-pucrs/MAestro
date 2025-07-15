@@ -60,7 +60,7 @@ void llm_rt(unsigned *last_monitored, int id, unsigned slack_time, unsigned rema
  * @bried Monitor security contraints
  * 
  * @param timestamp Timestamp of received message
- * @param size      Size of received message
+ * @param size      Size of received message (in flits)
  * @param src       Source address of received message
  * @param dst       Destination address of received message
  * @param prod      Producer task

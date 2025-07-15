@@ -290,7 +290,7 @@ int msg_recv_message_delivery(msg_dlv_t *dlv)
     if (llm_has_monitor(MON_SEC) && recv_app != 0 && send_app != 0) {
 		llm_sec(
             dlv->timestamp, 
-            dlv->size + sizeof(dlv->hdshk) + sizeof(dlv->hdshk.hermes), 
+            (dlv->size + sizeof(msg_dlv_t))/4, 
             dlv->hdshk.source, 
             MMR_DMNI_INF_ADDRESS, 
             dlv->hdshk.sender, 
