@@ -67,7 +67,7 @@ void llm_rt(unsigned *last_monitored, int id, unsigned slack_time, unsigned rema
 	monitor.service             = QOS_MONITOR;
 	monitor.slack_time          = slack_time;
 	monitor.remaining_exec_time = remaining_exec_time;
-	kpipe_add(&monitor, sizeof(memphis_qos_monitor_t), _observers[MON_QOS].task, _observers[MON_QOS].addr);
+	mpipe_write(&monitor, sizeof(memphis_qos_monitor_t), _observers[MON_QOS].addr);
 	*last_monitored = now;
 }
 
