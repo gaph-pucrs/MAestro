@@ -115,6 +115,9 @@ tcb_t *sys_syscall(
 			case SYS_mkfifo:
 				ret = sys_mkfifo(current, arg1, arg2);
 				break;
+			case SYS_writempipe:
+				ret = sys_writempipe(current, (void*)arg1, arg2, arg3);
+				break;
 			default:
 				printf("ERROR: Unknown syscall %d\n", number);
 				ret = 0;
@@ -648,4 +651,31 @@ int sys_mkfifo(tcb_t *tcb, int size, int len)
 {
 	const int id = tcb_get_id(tcb);
 	return mpipe_create(size, len, id);
+}
+
+int sys_writempipe(tcb_t *tcb, void *buf, size_t size, int receiver)
+{
+	// printf("%x Called writepipe\n", tcb->id);
+	const int sender = tcb_get_id(tcb);
+
+	if ((sender >> 8) != 0)
+		return -EACCES;
+	
+	/* Message to task of same app */
+	app_t *app = tcb_get_app(tcb);
+	if (app == NULL)
+		return -EINVAL;
+
+	uint32_t target = app_get_address(app, receiver);
+	if (target == -1)
+		return -EINVAL;
+
+	/* Points the message in the task page. Address composition: offset + msg address */
+	if (buf == NULL)
+		return -EINVAL;
+
+	/* Sets real address of message buffer */
+	buf = (void*)((unsigned)buf | (unsigned)tcb_get_offset(tcb));
+
+	return mpipe_write(buf, size, target);
 }

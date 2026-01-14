@@ -234,3 +234,17 @@ int sys_safelog(unsigned snd_time, unsigned inf_time, unsigned edge, unsigned in
  * @return see mpipe_create
  */
 int sys_mkfifo(tcb_t *tcb, int size, int len);
+
+/**
+ * @brief Writes a message to the monitoring FIFO
+ * 
+ * @param tcb Pointer to the TCB
+ * @param buf Pointer to the message
+ * @param size Size of the message
+ * @param receiver ID of the consumer task
+ * 
+ * @return Number of bytes sent/stored in pipe/transferred.
+ * 		   -EINVAL on invalid argument
+ *         -EACCES on unauthorized sender
+ */
+int sys_writempipe(tcb_t *tcb, void *buf, size_t size, int receiver);
