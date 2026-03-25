@@ -55,7 +55,7 @@ int talloc_alloc(talloc_t *alloc)
 		return text_recv;
 
 	/* Obtain program data */
-	size_t data_recv = dmni_recv((void*)(0x01000000 | (unsigned)(tcb_get_offset(tcb))), ((alloc->data_size + 3) & ~3));
+	size_t data_recv = dmni_recv((void*)(MMR_DATA_BASE | (unsigned)(tcb_get_offset(tcb))), ((alloc->data_size + 3) & ~3));
 	if (data_recv < 0)
 		return data_recv;
 
