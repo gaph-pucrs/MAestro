@@ -76,6 +76,9 @@ tcb_t *sys_syscall(
 			case SYS_gettick:
 				ret = sys_get_tick();
 				break;
+			case SYS_gettickh:
+				ret = sys_get_tickh();
+				break;
 			case SYS_realtime:
 				ret = sys_realtime(current, arg1, arg2, arg3);
 				break;
@@ -483,6 +486,11 @@ int sys_readpipe(tcb_t *tcb, void *buf, size_t size, int sender, bool sync)
 unsigned int sys_get_tick()	
 {	
 	return MMR_RTC_MTIME;	
+}
+
+unsigned int sys_get_tickh()
+{
+	return MMR_RTC_MTIMEH;
 }
 
 int sys_realtime(tcb_t *tcb, unsigned period, int deadline, unsigned exec_time)

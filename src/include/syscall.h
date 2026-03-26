@@ -99,6 +99,13 @@ int sys_readpipe(tcb_t *tcb, void *buf, size_t size, int prod_task, bool sync);
 unsigned int sys_get_tick();
 
 /**
+ * @brief Get the upper tick count (upper 32 bits of MTIME)
+ *
+ * @return Upper 32-bit value of tick count
+ */
+unsigned int sys_get_tickh();
+
+/**
  * @brief Configures a task real time
  * 
  * @param tcb Pointer to the producer TCB
