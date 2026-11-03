@@ -624,6 +624,11 @@ int sys_get_ctx(tcb_t *tcb, mctx_t *ctx)
 	real_ptr->PE_SLOTS 	= size_register >> 16;
 	real_ptr->MC_SLOTS 	= real_ptr->PE_SLOTS * real_ptr->PE_CNT;
 
+	/* OSZ reserved region size, 0xXXYY anchored at PE 0,0; 0 = disabled */
+	uint32_t osz_register = MMR_DMNI_INF_OSZ_WINDOW;
+	real_ptr->OSZ_X		= (osz_register >> 8) & 0xFF;
+	real_ptr->OSZ_Y		= osz_register & 0xFF;
+
 	return 0;
 }
 
