@@ -16,9 +16,11 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <dmni.h>
 #include <mmr.h>
+#include <osz.h>
 #include <task_control.h>
 #include <halt.h>
 #include <kernel_pipe.h>
@@ -257,6 +259,9 @@ int msg_recv_message_delivery(msg_dlv_t *dlv)
 		/* Process the message like a syscall triggered from another PE */
 		int ret = rpc_hermes_dispatcher(rcvmsg, dlv->size);
 
+		/* OSZ: kernel messages to a region PE (e.g. a location table) are cleared too */
+		if (osz_inside())
+			memset(rcvmsg, 0, align_size);
 		free(rcvmsg);
 
 		return ret;

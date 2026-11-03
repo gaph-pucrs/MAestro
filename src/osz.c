@@ -16,6 +16,7 @@
 #include <task_scheduler.h>
 #include <broadcast.h>
 #include <kernel_pipe.h>
+#include <dmni.h>
 
 #include <memphis/services.h>
 #include <memphis/messaging.h>
@@ -44,9 +45,17 @@ static struct {
 	bool claimed;			/* Zone of a secure application (else a one-row zone) */
 	int  lo;
 	int  hi;
-	bool src_valid;
-	uint16_t src;			/* Mapper PE, accepted by the access point */
 } _pe;
+
+/**
+ * The mapper PE: the source of the first RELEASE_PERIPHERAL. The mapper sends
+ * it once, when the management application is mapped, before the application
+ * injector is released, so before any non-management code runs anywhere.
+ * Only it may send OSZ_ROWS and OSZ_ZONE_CLEAR, and the access point accepts
+ * it as a source.
+ */
+static bool     _mapper_valid = false;
+static uint16_t _mapper       = 0;
 
 /* Tasks released by the mapper before this PE's zone was claimed */
 static int   *_held = NULL;
@@ -73,8 +82,8 @@ static void _osz_close(void)
 
 	/* West: x = 0 is always the mesh edge */
 
-	if (_pe.src_valid)
-		block |= OSZ_BLOCK_SRC_VALID | ((uint32_t)_pe.src << 16);
+	if (_mapper_valid)
+		block |= OSZ_BLOCK_SRC_VALID | ((uint32_t)_mapper << 16);
 
 	MMR_DMNI_OSZ_BLOCK = block;
 
@@ -130,19 +139,33 @@ void osz_init(void)
 	_pe.claimed   = false;
 	_pe.lo        = _pe.y;
 	_pe.hi        = _pe.y;
-	_pe.src_valid = false;
-	_pe.src       = 0;
 	_osz_close();
 }
 
 void osz_set_mapper(uint16_t src_addr)
 {
-	if (!_pe.inside || (_pe.src_valid && _pe.src == src_addr))
+	if (_mapper_valid) {
+		if (src_addr != _mapper)
+			printf("WARNING: OSZ ignoring a mapper claim from %x, the mapper is %x\n", src_addr, _mapper);
 		return;
+	}
 
-	_pe.src_valid = true;
-	_pe.src       = src_addr;
-	_osz_close();
+	_mapper_valid = true;
+	_mapper       = src_addr;
+	printf("OSZ: mapper is PE %x\n", _mapper);
+
+	if (_pe.inside)
+		_osz_close();
+}
+
+/* Only the mapper may change the region's zones */
+static bool _osz_from_mapper(uint16_t src_addr, uint8_t service)
+{
+	if (_mapper_valid && src_addr == _mapper)
+		return true;
+
+	printf("WARNING: OSZ ignoring broadcast %x from %x, not the mapper\n", service, src_addr);
+	return false;
 }
 
 static int _osz_release_held(void)
@@ -172,7 +195,7 @@ static int _osz_release_held(void)
 
 int osz_set_rows(uint16_t payload, uint16_t src_addr)
 {
-	if (_entrance == NULL)
+	if (_entrance == NULL || !_osz_from_mapper(src_addr, OSZ_ROWS))
 		return 0;
 
 	const bool claim = MEMPHIS_OSZ_ROWS_CLAIM(payload);
@@ -182,16 +205,8 @@ int osz_set_rows(uint16_t payload, uint16_t src_addr)
 	for (int r = lo; r <= hi && r < _y; r++)
 		_entrance[r] = claim ? hi : -1;
 
-	if (!_pe.inside)
+	if (!_pe.inside || _pe.y < lo || _pe.y > hi)
 		return 0;
-
-	_pe.src_valid = true;
-	_pe.src       = src_addr;
-
-	if (_pe.y < lo || _pe.y > hi) {
-		_osz_close();	/* Not this PE's rows; refresh the accepted source only */
-		return 0;
-	}
 
 	if (claim) {
 		_pe.claimed = true;
@@ -236,9 +251,9 @@ void osz_report_task_done(int id)
 		printf("OSZ: reported task %d done\n", id);
 }
 
-int osz_zone_clear(uint16_t payload)
+int osz_zone_clear(uint16_t payload, uint16_t src_addr)
 {
-	if (!_pe.inside)
+	if (!_pe.inside || !_osz_from_mapper(src_addr, OSZ_ZONE_CLEAR))
 		return 0;
 
 	const int lo = MEMPHIS_OSZ_ROWS_LO(payload);
@@ -251,6 +266,9 @@ int osz_zone_clear(uint16_t payload)
 
 	for (int i = 0; i < _held_max; i++)
 		_held[i] = -1;
+
+	/* The last buffers this PE sent are still in the kernel heap */
+	dmni_clear_sent();
 
 	if (_osz_bcast(OSZ_ZONE_CLEARED, payload))
 		printf("OSZ: PE %d,%d cleared for rows %d..%d\n", _pe.x, _pe.y, lo, hi);

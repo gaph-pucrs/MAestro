@@ -114,21 +114,21 @@ int rpc_bcast_dispatcher(bcast_t *packet)
 			ret = _rpc_announce_monitor(other_field, id_field, packet->src_addr);
 			break;
 		case RELEASE_PERIPHERAL:
+			/* Sent once by the mapper, before any non-management code runs */
+			osz_set_mapper(packet->src_addr);
 			ret = _rpc_release_peripheral();
 			break;
 		case APP_TERMINATED:
 			ret = _rpc_app_terminated(id_field);
 			break;
 		case HALT_PE:
-			/* The halt handshake with the mapper passes the zone's access point */
-			osz_set_mapper(packet->src_addr);
 			ret = _rpc_halt_pe(id_field, packet->src_addr);
 			break;
 		case OSZ_ROWS:
 			ret = osz_set_rows(packet->payload, packet->src_addr);
 			break;
 		case OSZ_ZONE_CLEAR:
-			ret = osz_zone_clear(packet->payload);
+			ret = osz_zone_clear(packet->payload, packet->src_addr);
 			break;
 		case OSZ_TASK_DONE:
 		case OSZ_ZONE_CLEARED:

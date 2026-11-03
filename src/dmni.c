@@ -37,13 +37,44 @@ size_t dmni_recv(void *dst, size_t size)
 	return MMR_DMNI_HERMES_RECD_CNT;
 }
 
+/* Buffers of the last send, freed when the next send starts (the DMA reads them) */
+static bool   free_last_pkt     = false;
+static void  *outbound_pkt      = NULL;
+static size_t outbound_pkt_size = 0;
+
+static bool   free_last_pld     = false;
+static void  *outbound_pld      = NULL;
+static size_t outbound_pld_size = 0;
+
+static void _dmni_free_sent(bool clear)
+{
+	if (free_last_pkt) {
+		if (clear)
+			memset(outbound_pkt, 0, outbound_pkt_size);
+		free(outbound_pkt);
+	}
+
+	if (free_last_pld) {
+		if (clear)
+			memset(outbound_pld, 0, outbound_pld_size);
+		free(outbound_pld);
+	}
+
+	free_last_pkt = false;
+	free_last_pld = false;
+}
+
+void dmni_clear_sent(void)
+{
+	/* Wait for the DMA to finish reading the last send */
+	while((MMR_DMNI_IRQ_STATUS & (1 << DMNI_STATUS_SEND_ACTIVE)));
+	_dmni_free_sent(true);
+}
+
 int dmni_send(void *pkt, size_t pkt_size, bool pkt_free, void *pld, size_t pld_size, bool pld_free)
 {
-	static bool free_last_pkt = false;
-	static void *outbound_pkt = NULL;
-
-	static bool free_last_pld = false;
-	static void *outbound_pld = NULL;
+	/* OSZ: on a region PE, nothing a secure task sent outlives it in the kernel heap */
+	const bool clear = osz_inside();
 
 	if ((((hermes_t*)pkt)->address == MMR_DMNI_INF_ADDRESS) && (((hermes_t*)pkt)->flags == 0)) {
 		printf("ERROR: Will not send to itself\n");
@@ -68,8 +99,11 @@ int dmni_send(void *pkt, size_t pkt_size, bool pkt_free, void *pld, size_t pld_s
 		sr_pkt[0] = (1U << HERMES_SR_FLAG) | (uint16_t)turn;
 		memcpy(&sr_pkt[1], pkt, pkt_size);
 
-		if (pkt_free)
+		if (pkt_free) {
+			if (clear)
+				memset(pkt, 0, pkt_size);
 			free(pkt);	/* The DMA reads the copy */
+		}
 
 		pkt      = sr_pkt;
 		pkt_size = pkt_size + FLIT_SIZE;
@@ -80,17 +114,15 @@ int dmni_send(void *pkt, size_t pkt_size, bool pkt_free, void *pld, size_t pld_s
 	while((MMR_DMNI_IRQ_STATUS & (1 << DMNI_STATUS_SEND_ACTIVE)));
 
 	/* Memory management */
-	if (free_last_pkt)
-		free(outbound_pkt);
+	_dmni_free_sent(clear);
 
-	if (free_last_pld)
-		free(outbound_pld);
+	free_last_pkt     = pkt_free;
+	outbound_pkt      = pkt;
+	outbound_pkt_size = pkt_size;
 
-	free_last_pkt = pkt_free;
-	outbound_pkt  = pkt;
-
-	free_last_pld = pld_free;
-	outbound_pld  = pld;
+	free_last_pld     = pld_free;
+	outbound_pld      = pld;
+	outbound_pld_size = pld_size;
 
 	/* Program DMNI */
 	MMR_DMNI_HERMES_SIZE      = pkt_size/FLIT_SIZE;

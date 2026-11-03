@@ -37,16 +37,18 @@ void osz_init(void);
  * released. Closes this PE's zone accordingly and releases held tasks.
  *
  * @param payload OSZ_ROWS broadcast payload
- * @param src_addr Address of the PE that sent it (the mapper)
+ * @param src_addr Address of the PE that sent it (must be the mapper)
  *
  * @return 1 if the scheduler should be called, 0 otherwise
  */
 int osz_set_rows(uint16_t payload, uint16_t src_addr);
 
 /**
- * @brief Records the mapper PE as the source the access point accepts
+ * @brief Records the mapper PE: the source of the first RELEASE_PERIPHERAL.
+ * Later claims are ignored. Only the mapper may send OSZ_ROWS and
+ * OSZ_ZONE_CLEAR, and the access point accepts it as a source.
  *
- * @param src_addr Address of the mapper PE
+ * @param src_addr Address of the PE that sent RELEASE_PERIPHERAL
  */
 void osz_set_mapper(uint16_t src_addr);
 
@@ -86,10 +88,11 @@ void osz_report_task_done(int id);
  * every task still here, then reports OSZ_ZONE_CLEARED
  *
  * @param payload OSZ_ZONE_CLEAR payload (rows lo..hi)
+ * @param src_addr PE that sent it (must be the mapper)
  *
  * @return 1 if the scheduler should be called, 0 otherwise
  */
-int osz_zone_clear(uint16_t payload);
+int osz_zone_clear(uint16_t payload, uint16_t src_addr);
 
 /**
  * @brief On the PE hosting the mapper task, forwards an OSZ teardown report
