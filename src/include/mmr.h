@@ -34,6 +34,8 @@
 #define MMR_DMNI_INF_IMEM_PAGE_SZ	(*(volatile unsigned int*)0x90000018U)
 #define MMR_DMNI_INF_DMEM_PAGE_SZ	(*(volatile unsigned int*)0x9000001CU)
 #define MMR_DMNI_INF_OSZ_WINDOW		(*(volatile unsigned int*)0x90000060U)
+/* {source[31:16], 10'b0, src_valid[5], access_e[4], block {S,N,W,E}[3:0]} */
+#define MMR_DMNI_OSZ_BLOCK			(*(volatile unsigned int*)0x90000064U)
 
 #define MMR_DMNI_HERMES_HEAD		(*(volatile unsigned int*)0x90000020U)
 #define MMR_DMNI_HERMES_RECD_CNT	(*(volatile unsigned int*)0x90000024U)

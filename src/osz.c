@@ -2,27 +2,90 @@
  * MAestro
  * @file osz.c
  *
- * @brief OSZ region routing: one entrance per secure application
+ * @brief OSZ region: single entrance routing and zone closing
  */
 
 #include <osz.h>
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <errno.h>
 
 #include <mmr.h>
+#include <task_control.h>
+#include <task_scheduler.h>
 
 #include <memphis/messaging.h>
 
-static int  _x = 0;			/* Region width, 0 when disabled */
-static int  _y = 0;			/* Region height */
+/* DMNI_OSZ_BLOCK fields */
+#define OSZ_BLOCK_E			(1U << 0)
+#define OSZ_BLOCK_W			(1U << 1)
+#define OSZ_BLOCK_N			(1U << 2)
+#define OSZ_BLOCK_S			(1U << 3)
+#define OSZ_BLOCK_ACCESS_E	(1U << 4)
+#define OSZ_BLOCK_SRC_VALID	(1U << 5)
+
+static int  _x = 0;				/* Region width, 0 when disabled */
+static int  _y = 0;				/* Region height */
+static int  _mesh_y = 0;
 static int *_entrance = NULL;	/* Entrance (top) row of the app owning each row, -1 when free */
+
+/* This PE's zone, only meaningful inside the region */
+static struct {
+	bool inside;			/* This PE is inside the region */
+	int  x;
+	int  y;
+	bool claimed;			/* Zone of a secure application (else a one-row zone) */
+	int  lo;
+	int  hi;
+	bool src_valid;
+	uint16_t src;			/* Mapper PE, accepted by the access point */
+} _pe;
+
+/* Tasks released by the mapper before this PE's zone was claimed */
+static int   *_held = NULL;
+static size_t _held_max = 0;
+
+static void _osz_close(void)
+{
+	if (!_pe.inside)
+		return;
+
+	uint32_t block = 0;
+
+	/* East edge: the access point on the top row, blocked below it */
+	if (_pe.x == _x - 1)
+		block |= (_pe.y == _pe.hi) ? OSZ_BLOCK_ACCESS_E : OSZ_BLOCK_E;
+
+	/* North edge: the zone's top row, unless it is the mesh edge */
+	if (_pe.y == _pe.hi && _pe.y + 1 < _mesh_y)
+		block |= OSZ_BLOCK_N;
+
+	/* South edge: the zone's bottom row, unless it is the mesh edge */
+	if (_pe.y == _pe.lo && _pe.y > 0)
+		block |= OSZ_BLOCK_S;
+
+	/* West: x = 0 is always the mesh edge */
+
+	if (_pe.src_valid)
+		block |= OSZ_BLOCK_SRC_VALID | ((uint32_t)_pe.src << 16);
+
+	MMR_DMNI_OSZ_BLOCK = block;
+
+	printf(
+		"OSZ: PE %d,%d closed in %s zone rows %d..%d, block %lx\n",
+		_pe.x, _pe.y, _pe.claimed ? "claimed" : "one-row", _pe.lo, _pe.hi, block
+	);
+}
 
 void osz_init(void)
 {
 	uint32_t window = MMR_DMNI_INF_OSZ_WINDOW;
 	_x = (window >> 8) & 0xFF;
 	_y = window & 0xFF;
+	_mesh_y = MMR_DMNI_INF_MANYCORE_SZ & 0xFF;
+
+	_pe.inside = false;
 
 	if (_x == 0 || _y == 0) {
 		_x = 0;
@@ -40,9 +103,68 @@ void osz_init(void)
 
 	for (int r = 0; r < _y; r++)
 		_entrance[r] = -1;
+
+	const uint16_t own = MMR_DMNI_INF_ADDRESS;
+	_pe.x = own >> 8;
+	_pe.y = own & 0xFF;
+	_pe.inside = (_pe.x < _x && _pe.y < _y);
+	if (!_pe.inside)
+		return;
+
+	_held_max = MMR_DMNI_INF_MANYCORE_SZ >> 16;
+	_held = malloc(_held_max * sizeof(int));
+	if (_held == NULL) {
+		puts("FATAL: not enough memory for the OSZ held tasks");
+		_held_max = 0;
+	}
+	for (int i = 0; i < _held_max; i++)
+		_held[i] = -1;
+
+	/* Every region row starts as its own closed one-row zone */
+	_pe.claimed   = false;
+	_pe.lo        = _pe.y;
+	_pe.hi        = _pe.y;
+	_pe.src_valid = false;
+	_pe.src       = 0;
+	_osz_close();
 }
 
-int osz_set_rows(uint16_t payload)
+void osz_set_mapper(uint16_t src_addr)
+{
+	if (!_pe.inside || (_pe.src_valid && _pe.src == src_addr))
+		return;
+
+	_pe.src_valid = true;
+	_pe.src       = src_addr;
+	_osz_close();
+}
+
+static int _osz_release_held(void)
+{
+	bool released = false;
+	for (int i = 0; i < _held_max; i++) {
+		if (_held[i] == -1)
+			continue;
+
+		tcb_t *tcb = tcb_find(_held[i]);
+		_held[i] = -1;
+
+		if (tcb == NULL || tcb_get_sched(tcb) != NULL)
+			continue;	/* Aborted meanwhile, or already running */
+
+		if (sched_emplace_back(tcb) == NULL) {
+			printf("ERROR: could not release held task %d\n", tcb_get_id(tcb));
+			continue;
+		}
+
+		printf("OSZ: released held task %d\n", tcb_get_id(tcb));
+		released = true;
+	}
+
+	return released && sched_is_idle();
+}
+
+int osz_set_rows(uint16_t payload, uint16_t src_addr)
 {
 	if (_entrance == NULL)
 		return 0;
@@ -54,7 +176,46 @@ int osz_set_rows(uint16_t payload)
 	for (int r = lo; r <= hi && r < _y; r++)
 		_entrance[r] = claim ? hi : -1;
 
-	return 0;
+	if (!_pe.inside)
+		return 0;
+
+	_pe.src_valid = true;
+	_pe.src       = src_addr;
+
+	if (_pe.y < lo || _pe.y > hi) {
+		_osz_close();	/* Not this PE's rows; refresh the accepted source only */
+		return 0;
+	}
+
+	if (claim) {
+		_pe.claimed = true;
+		_pe.lo      = lo;
+		_pe.hi      = hi;
+	} else {
+		/* Back to a one-row zone */
+		_pe.claimed = false;
+		_pe.lo      = _pe.y;
+		_pe.hi      = _pe.y;
+	}
+	_osz_close();
+
+	return claim ? _osz_release_held() : 0;
+}
+
+bool osz_release_allowed(void)
+{
+	return (!_pe.inside || _pe.claimed);
+}
+
+int osz_hold(int id)
+{
+	for (int i = 0; i < _held_max; i++) {
+		if (_held[i] == -1) {
+			_held[i] = id;
+			return 0;
+		}
+	}
+	return -ENOMEM;
 }
 
 static bool _inside(int x, int y)

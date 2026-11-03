@@ -120,10 +120,12 @@ int rpc_bcast_dispatcher(bcast_t *packet)
 			ret = _rpc_app_terminated(id_field);
 			break;
 		case HALT_PE:
+			/* The halt handshake with the mapper passes the zone's access point */
+			osz_set_mapper(packet->src_addr);
 			ret = _rpc_halt_pe(id_field, packet->src_addr);
 			break;
 		case OSZ_ROWS:
-			ret = osz_set_rows(packet->payload);
+			ret = osz_set_rows(packet->payload, packet->src_addr);
 			break;
 		default:
 			printf(
@@ -225,6 +227,15 @@ int _rpc_task_release(memphis_info_t *packet, int32_t *payload)
 
 		if (result < 0)
 			return -ENOMEM;
+	}
+
+	/* OSZ: a secure task never runs before its PE is in its app's closed zone */
+	if (!osz_release_allowed()) {
+		if (osz_hold(tcb_get_id(tcb)) < 0)
+			return -ENOMEM;
+
+		printf("OSZ: holding task %d until its zone is closed\n", tcb_get_id(tcb));
+		return 0;
 	}
 
 	/* If the task is blocked, release it */
