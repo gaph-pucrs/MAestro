@@ -16,9 +16,11 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <mmr.h>
 #include <hermes.h>
+#include <osz.h>
 
 static const size_t FLIT_SIZE = 4;
 
@@ -50,6 +52,29 @@ int dmni_send(void *pkt, size_t pkt_size, bool pkt_free, void *pld, size_t pld_s
 
 	if (pkt_size % FLIT_SIZE != 0 || pld_size % FLIT_SIZE != 0)
 		return -EINVAL;
+
+	/**
+	 * OSZ region: a packet entering or leaving a secure application is
+	 * source-routed through the application's single entrance. Prepend an SR
+	 * header flit (SR_FLAG) addressed to the turn point; the turn point's DMNI
+	 * drops it and loops the rest of the packet back into the NoC.
+	 */
+	int turn = osz_turn(MMR_DMNI_INF_ADDRESS, ((hermes_t*)pkt)->address);
+	if (turn >= 0) {
+		uint32_t *sr_pkt = malloc(pkt_size + FLIT_SIZE);
+		if (sr_pkt == NULL)
+			return -ENOMEM;
+
+		sr_pkt[0] = (1U << HERMES_SR_FLAG) | (uint16_t)turn;
+		memcpy(&sr_pkt[1], pkt, pkt_size);
+
+		if (pkt_free)
+			free(pkt);	/* The DMA reads the copy */
+
+		pkt      = sr_pkt;
+		pkt_size = pkt_size + FLIT_SIZE;
+		pkt_free = true;
+	}
 
 	/* Wait for DMNI to be released */
 	while((MMR_DMNI_IRQ_STATUS & (1 << DMNI_STATUS_SEND_ACTIVE)));

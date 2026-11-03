@@ -30,6 +30,12 @@ typedef struct _hermes {
 } hermes_t;
 
 /**
+ * Header flit bit of an intermediate source-routing header (DMNIPkg SR_FLAG).
+ * The PE it addresses drops that flit and loops the rest of the packet back.
+ */
+#define HERMES_SR_FLAG 27
+
+/**
  * @brief Receives a packet
  * 
  * @param service Packet service

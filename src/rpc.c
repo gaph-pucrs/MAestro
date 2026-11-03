@@ -21,6 +21,7 @@
 #include <halt.h>
 #include <task_control.h>
 #include <task_migration.h>
+#include <osz.h>
 
 #include <memphis/services.h>
 #include <memphis/messaging.h>
@@ -120,6 +121,9 @@ int rpc_bcast_dispatcher(bcast_t *packet)
 			break;
 		case HALT_PE:
 			ret = _rpc_halt_pe(id_field, packet->src_addr);
+			break;
+		case OSZ_ROWS:
+			ret = osz_set_rows(packet->payload);
 			break;
 		default:
 			printf(
