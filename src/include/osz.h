@@ -69,6 +69,41 @@ int osz_turn(uint16_t own, uint16_t target);
 bool osz_release_allowed(void);
 
 /**
+ * @brief Whether this PE is inside the region (it then only hosts tasks of
+ * secure applications)
+ */
+bool osz_inside(void);
+
+/**
+ * @brief Reports over BrLite that a task ended and its memory was cleared
+ *
+ * @param id Task ID
+ */
+void osz_report_task_done(int id);
+
+/**
+ * @brief Handles OSZ_ZONE_CLEAR: on a PE of rows lo..hi, removes and clears
+ * every task still here, then reports OSZ_ZONE_CLEARED
+ *
+ * @param payload OSZ_ZONE_CLEAR payload (rows lo..hi)
+ *
+ * @return 1 if the scheduler should be called, 0 otherwise
+ */
+int osz_zone_clear(uint16_t payload);
+
+/**
+ * @brief On the PE hosting the mapper task, forwards an OSZ teardown report
+ * (OSZ_TASK_DONE, OSZ_ZONE_CLEARED) to it through the kernel pipe
+ *
+ * @param service Broadcast service
+ * @param payload Broadcast payload
+ * @param src_addr PE that broadcast it
+ *
+ * @return 1 if the scheduler should be called, 0 otherwise
+ */
+int osz_forward_report(uint8_t service, uint16_t payload, uint16_t src_addr);
+
+/**
  * @brief Keeps a task held until this PE's zone is claimed
  *
  * @param id Task ID

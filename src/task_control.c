@@ -21,6 +21,7 @@
 #include <mmr.h>
 #include <llm.h>
 #include <kernel_pipe.h>
+#include <osz.h>
 
 #include <memphis/services.h>
 #include <memphis/messaging.h>
@@ -152,8 +153,74 @@ void tcb_abort_task(tcb_t *tcb)
 	tcb_remove(tcb);
 }
 
+/**
+ * @brief Zeroes and empties a list of task-location records
+ */
+static void _tcb_clear_tl_list(list_t *list)
+{
+	list_entry_t *entry = list_front(list);
+	while (entry != NULL) {
+		tl_t *tl = list_get_data(entry);
+		if (tl != NULL) {
+			memset(tl, 0, sizeof(tl_t));
+			free(tl);
+		}
+		entry = list_next(entry);
+	}
+
+	list_destroy(list);
+	list_init(list);
+}
+
+/**
+ * @brief Clears everything a task of a secure application leaves on this PE
+ *
+ * @details The whole data page (data, bss, heap, stack and the input pipe
+ * buffer, which lives in it; .rodata is linked there too), the saved
+ * context, an output pipe message not yet handed to the DMNI, and the
+ * message request / data available records. The text page is not cleared:
+ * instruction memory is not writable by the CPU, only by the DMNI.
+ */
+static void _tcb_clear(tcb_t *tcb)
+{
+	volatile uint32_t *word = (uint32_t*)(MMR_DATA_BASE | (unsigned)tcb_get_offset(tcb));
+	const size_t words = MMR_DMNI_INF_DMEM_PAGE_SZ >> 2;
+	for (size_t i = 0; i < words; i++)
+		word[i] = 0;
+
+	memset(tcb->registers, 0, sizeof(tcb->registers));
+	tcb->pc       = NULL;
+	tcb->heap_end = NULL;
+
+	/* A message still in the pipe has not been handed to the DMNI */
+	if (tcb->pipe_out != NULL) {
+		if (tcb->pipe_out->buf != NULL) {
+			memset(tcb->pipe_out->buf, 0, tcb->pipe_out->size);
+			free(tcb->pipe_out->buf);
+		}
+		free(tcb->pipe_out);
+		tcb->pipe_out = NULL;
+	}
+
+	/* The input pipe buffer is inside the data page, already cleared */
+	if (tcb->pipe_in != NULL) {
+		free(tcb->pipe_in);
+		tcb->pipe_in = NULL;
+	}
+
+	_tcb_clear_tl_list(&(tcb->message_requests));
+	_tcb_clear_tl_list(&(tcb->data_avs));
+
+	printf("OSZ: cleared task %d\n", tcb->id);
+}
+
 void tcb_remove(tcb_t *tcb)
 {
+	/* OSZ: nothing of a secure task outlives it on this PE */
+	const bool clear = osz_inside();
+	if (clear)
+		_tcb_clear(tcb);
+
 	app_derefer(tcb->app);
 
 	page_release(tcb->page);
@@ -166,7 +233,30 @@ void tcb_remove(tcb_t *tcb)
 
 	MMR_DBG_TERMINATE = tcb->id;
 
+	if (clear)
+		memset(tcb, 0, sizeof(tcb_t));
+
 	free(tcb);
+}
+
+int tcb_remove_all(void)
+{
+	tcb_t *current = sched_get_current_tcb();
+	bool removed_current = false;
+
+	list_entry_t *entry = list_front(&_tcbs);
+	while (entry != NULL) {
+		tcb_t *tcb = list_get_data(entry);
+		entry = list_next(entry);	/* tcb_remove unlinks the current entry */
+
+		if (tcb == current)
+			removed_current = true;
+
+		printf("OSZ: removing task %d at zone clear\n", tcb->id);
+		tcb_remove(tcb);
+	}
+
+	return removed_current;
 }
 
 opipe_t *tcb_get_opipe(tcb_t *tcb)
@@ -189,6 +279,14 @@ bool _tcb_send_terminated(tcb_t *tcb)
 
 void tcb_terminate(tcb_t *tcb)
 {
+	if (osz_inside()) {
+		/* OSZ: clear first, then report over BrLite */
+		const int id = tcb->id;
+		tcb_remove(tcb);
+		osz_report_task_done(id);
+		return;
+	}
+
 	/* Send TASK_TERMINATED */
 	_tcb_send_terminated(tcb);
 

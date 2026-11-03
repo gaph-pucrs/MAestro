@@ -14,8 +14,14 @@
 #include <mmr.h>
 #include <task_control.h>
 #include <task_scheduler.h>
+#include <broadcast.h>
+#include <kernel_pipe.h>
 
+#include <memphis/services.h>
 #include <memphis/messaging.h>
+
+/* A broadcast fails only while the local BrLite port is busy with the previous one */
+#define OSZ_BCAST_RETRIES	100000
 
 /* DMNI_OSZ_BLOCK fields */
 #define OSZ_BLOCK_E			(1U << 0)
@@ -200,6 +206,77 @@ int osz_set_rows(uint16_t payload, uint16_t src_addr)
 	_osz_close();
 
 	return claim ? _osz_release_held() : 0;
+}
+
+bool osz_inside(void)
+{
+	return _pe.inside;
+}
+
+static bool _osz_bcast(uint8_t service, uint16_t payload)
+{
+	bcast_t packet;
+	packet.service  = service;
+	packet.src_addr = MMR_DMNI_INF_ADDRESS;
+	packet.payload  = payload;
+
+	for (int i = 0; i < OSZ_BCAST_RETRIES; i++) {
+		if (bcast_send(&packet))
+			return true;
+	}
+
+	/* The application stays open and its rows are never released: the safe side */
+	printf("ERROR: OSZ could not broadcast %x payload %x\n", service, payload);
+	return false;
+}
+
+void osz_report_task_done(int id)
+{
+	if (_osz_bcast(OSZ_TASK_DONE, (uint16_t)id))
+		printf("OSZ: reported task %d done\n", id);
+}
+
+int osz_zone_clear(uint16_t payload)
+{
+	if (!_pe.inside)
+		return 0;
+
+	const int lo = MEMPHIS_OSZ_ROWS_LO(payload);
+	const int hi = MEMPHIS_OSZ_ROWS_HI(payload);
+	if (_pe.y < lo || _pe.y > hi)
+		return 0;
+
+	/* Anything of the application still here (e.g. an abort still on its way) */
+	int removed_current = tcb_remove_all();
+
+	for (int i = 0; i < _held_max; i++)
+		_held[i] = -1;
+
+	if (_osz_bcast(OSZ_ZONE_CLEARED, payload))
+		printf("OSZ: PE %d,%d cleared for rows %d..%d\n", _pe.x, _pe.y, lo, hi);
+
+	return removed_current;
+}
+
+int osz_forward_report(uint8_t service, uint16_t payload, uint16_t src_addr)
+{
+	/* The mapper is management task 0 */
+	if (tcb_find(0) == NULL)
+		return 0;
+
+	memphis_osz_report_t report;
+	report.payload  = payload;
+	report.service  = service;
+	report.pad8     = 0;
+	report.src_addr = src_addr;
+
+	int ret = kpipe_add(&report, sizeof(report), 0, MMR_DMNI_INF_ADDRESS);
+	if (ret < 0) {
+		printf("ERROR: OSZ could not forward %x to the mapper\n", service);
+		return 0;
+	}
+
+	return ret;
 }
 
 bool osz_release_allowed(void)

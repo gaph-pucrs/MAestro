@@ -116,8 +116,18 @@ void tcb_abort_task(tcb_t *tcb);
  * @brief Removes a TCB
  * 
  * @param tcb Pointer to the TCB
+ *
+ * @details On a PE inside the OSZ region, everything the task leaves on this
+ * PE is cleared first (see task_control.c).
  */
 void tcb_remove(tcb_t *tcb);
+
+/**
+ * @brief Removes every TCB on this PE (OSZ zone clear)
+ *
+ * @return 1 if the running task was removed, 0 otherwise
+ */
+int tcb_remove_all(void);
 
 /**
  * @brief Gets the output pipe structure

@@ -127,6 +127,13 @@ int rpc_bcast_dispatcher(bcast_t *packet)
 		case OSZ_ROWS:
 			ret = osz_set_rows(packet->payload, packet->src_addr);
 			break;
+		case OSZ_ZONE_CLEAR:
+			ret = osz_zone_clear(packet->payload);
+			break;
+		case OSZ_TASK_DONE:
+		case OSZ_ZONE_CLEARED:
+			ret = osz_forward_report(packet->service, packet->payload, packet->src_addr);
+			break;
 		default:
 			printf(
 				"ERROR: unknown broadcast %x at time %d\n", 
