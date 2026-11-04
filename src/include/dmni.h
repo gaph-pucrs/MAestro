@@ -44,6 +44,12 @@ size_t dmni_recv(void *dst, size_t size);
 int dmni_send(void *pkt, size_t pkt_size, bool pkt_free, void *pld, size_t pld_size, bool pld_free);
 
 /**
+ * @brief Waits for the last send to finish, then zeroes and frees its buffers
+ * (OSZ zone clear: nothing sent from a zone outlives it in the kernel heap)
+ */
+void dmni_clear_sent(void);
+
+/**
  * @brief Requests the DMNI to drop flits from a message payload.
  * 
  * @param payload_size Number of flits to drop from packet payload

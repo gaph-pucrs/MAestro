@@ -21,6 +21,7 @@
 #include <halt.h>
 #include <task_control.h>
 #include <task_migration.h>
+#include <osz.h>
 
 #include <memphis/services.h>
 #include <memphis/messaging.h>
@@ -113,6 +114,8 @@ int rpc_bcast_dispatcher(bcast_t *packet)
 			ret = _rpc_announce_monitor(other_field, id_field, packet->src_addr);
 			break;
 		case RELEASE_PERIPHERAL:
+			/* Sent once by the mapper, before any non-management code runs */
+			osz_set_mapper(packet->src_addr);
 			ret = _rpc_release_peripheral();
 			break;
 		case APP_TERMINATED:
@@ -120,6 +123,16 @@ int rpc_bcast_dispatcher(bcast_t *packet)
 			break;
 		case HALT_PE:
 			ret = _rpc_halt_pe(id_field, packet->src_addr);
+			break;
+		case OSZ_ROWS:
+			ret = osz_set_rows(packet->payload, packet->src_addr);
+			break;
+		case OSZ_ZONE_CLEAR:
+			ret = osz_zone_clear(packet->payload, packet->src_addr);
+			break;
+		case OSZ_TASK_DONE:
+		case OSZ_ZONE_CLEARED:
+			ret = osz_forward_report(packet->service, packet->payload, packet->src_addr);
 			break;
 		default:
 			printf(
@@ -221,6 +234,16 @@ int _rpc_task_release(memphis_info_t *packet, int32_t *payload)
 
 		if (result < 0)
 			return -ENOMEM;
+	}
+
+	/* OSZ: a secure task never runs before its PE is in its app's closed zone */
+	if (!osz_release_allowed()) {
+		if (osz_hold(tcb_get_id(tcb)) < 0)
+			return -ENOMEM;
+
+		printf("OSZ: holding task %d until its zone is closed\n", tcb_get_id(tcb));
+		osz_dbg(OSZ_DBG_TASK_HELD, tcb_get_id(tcb));
+		return 0;
 	}
 
 	/* If the task is blocked, release it */

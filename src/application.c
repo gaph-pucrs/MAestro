@@ -18,6 +18,8 @@
 
 #include <mutils/list.h>
 
+#include "osz.h"
+
 list_t _apps;
 
 void app_init()
@@ -73,6 +75,14 @@ void _app_remove(app_t *app)
 		return;
 
 	list_remove(&_apps, entry);
+
+	/* OSZ: the location table of a secure application does not outlive it */
+	if (osz_inside() && app->task_location != NULL) {
+		memset(app->task_location, 0, app->task_cnt * sizeof(int));
+		free(app->task_location);
+		memset(app, 0, sizeof(app_t));
+	}
+
 	free(app);
 }
 

@@ -33,6 +33,9 @@
 #define MMR_DMNI_INF_MANYCORE_SZ	(*(volatile unsigned int*)0x90000014U)
 #define MMR_DMNI_INF_IMEM_PAGE_SZ	(*(volatile unsigned int*)0x90000018U)
 #define MMR_DMNI_INF_DMEM_PAGE_SZ	(*(volatile unsigned int*)0x9000001CU)
+#define MMR_DMNI_INF_OSZ_WINDOW		(*(volatile unsigned int*)0x90000060U)
+/* {source[31:16], 10'b0, src_valid[5], access_e[4], block {S,N,W,E}[3:0]} */
+#define MMR_DMNI_OSZ_BLOCK			(*(volatile unsigned int*)0x90000064U)
 
 #define MMR_DMNI_HERMES_HEAD		(*(volatile unsigned int*)0x90000020U)
 #define MMR_DMNI_HERMES_RECD_CNT	(*(volatile unsigned int*)0x90000024U)
@@ -69,6 +72,9 @@
 #define MMR_DBG_SAFE_INF_LAT		(*(volatile unsigned int*)0xF000005CU)
 #define MMR_DBG_SAFE_LAT_PRED		(*(volatile unsigned int*)0xF0000060U)
 #define MMR_DBG_SAFE_LAT_MON		(*(volatile unsigned int*)0xF0000064U)
+
+/* OSZ events {event[31:24], data[23:0]}, logged by the simulation monitor Phivers/sim/OszPeTrace.sv */
+#define MMR_DBG_OSZ					(*(volatile unsigned int*)0xF0000070U)
 
 enum PLIC_IE {
 	PLIC_IE_NONE,
