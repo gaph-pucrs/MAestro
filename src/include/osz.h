@@ -26,6 +26,30 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include <mmr.h>
+
+/**
+ * OSZ events written to MMR_DBG_OSZ as {event[31:24], data[23:0]}. In
+ * simulation, Phivers/sim/OszPeTrace.sv (bound under `ifdef OSZ_TRACE) logs
+ * them with the cycle to debug/osz_trace.txt for tools/meshviz. Keep the
+ * names there in sync.
+ */
+enum OSZ_DBG {
+	OSZ_DBG_MAPPER        = 1,	/* data: mapper PE, learned from RELEASE_PERIPHERAL */
+	OSZ_DBG_TASK_HELD     = 2,	/* data: task held at TASK_RELEASE until the zone is claimed */
+	OSZ_DBG_TASK_RELEASED = 3,	/* data: held task released */
+	OSZ_DBG_TASK_CLEARED  = 4,	/* data: task whose memory was cleared */
+	OSZ_DBG_TASK_DONE     = 5,	/* data: task reported with OSZ_TASK_DONE */
+	OSZ_DBG_ZONE_CLEAR    = 6,	/* data: OSZ_ZONE_CLEAR payload handled here */
+	OSZ_DBG_ZONE_CLEARED  = 7,	/* data: OSZ_ZONE_CLEARED payload sent */
+	OSZ_DBG_BCAST_IGNORED = 8	/* data: {service, source PE} of a zone broadcast not from the mapper */
+};
+
+static inline void osz_dbg(enum OSZ_DBG event, uint32_t data)
+{
+	MMR_DBG_OSZ = ((uint32_t)event << 24) | (data & 0xFFFFFF);
+}
+
 /**
  * @brief Reads the region, clears the row table and closes this PE's
  * one-row zone if it is inside the region

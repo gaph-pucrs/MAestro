@@ -73,6 +73,9 @@
 #define MMR_DBG_SAFE_LAT_PRED		(*(volatile unsigned int*)0xF0000060U)
 #define MMR_DBG_SAFE_LAT_MON		(*(volatile unsigned int*)0xF0000064U)
 
+/* OSZ events {event[31:24], data[23:0]}, logged by the simulation monitor Phivers/sim/OszPeTrace.sv */
+#define MMR_DBG_OSZ					(*(volatile unsigned int*)0xF0000070U)
+
 enum PLIC_IE {
 	PLIC_IE_NONE,
 	PLIC_IE_DMNI

@@ -242,6 +242,7 @@ int _rpc_task_release(memphis_info_t *packet, int32_t *payload)
 			return -ENOMEM;
 
 		printf("OSZ: holding task %d until its zone is closed\n", tcb_get_id(tcb));
+		osz_dbg(OSZ_DBG_TASK_HELD, tcb_get_id(tcb));
 		return 0;
 	}
 

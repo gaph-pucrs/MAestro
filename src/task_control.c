@@ -212,6 +212,7 @@ static void _tcb_clear(tcb_t *tcb)
 	_tcb_clear_tl_list(&(tcb->data_avs));
 
 	printf("OSZ: cleared task %d\n", tcb->id);
+	osz_dbg(OSZ_DBG_TASK_CLEARED, tcb->id);
 }
 
 void tcb_remove(tcb_t *tcb)

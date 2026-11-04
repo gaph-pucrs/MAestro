@@ -153,6 +153,7 @@ void osz_set_mapper(uint16_t src_addr)
 	_mapper_valid = true;
 	_mapper       = src_addr;
 	printf("OSZ: mapper is PE %x\n", _mapper);
+	osz_dbg(OSZ_DBG_MAPPER, _mapper);
 
 	if (_pe.inside)
 		_osz_close();
@@ -165,6 +166,7 @@ static bool _osz_from_mapper(uint16_t src_addr, uint8_t service)
 		return true;
 
 	printf("WARNING: OSZ ignoring broadcast %x from %x, not the mapper\n", service, src_addr);
+	osz_dbg(OSZ_DBG_BCAST_IGNORED, ((uint32_t)service << 16) | src_addr);
 	return false;
 }
 
@@ -187,6 +189,7 @@ static int _osz_release_held(void)
 		}
 
 		printf("OSZ: released held task %d\n", tcb_get_id(tcb));
+		osz_dbg(OSZ_DBG_TASK_RELEASED, tcb_get_id(tcb));
 		released = true;
 	}
 
@@ -247,8 +250,10 @@ static bool _osz_bcast(uint8_t service, uint16_t payload)
 
 void osz_report_task_done(int id)
 {
-	if (_osz_bcast(OSZ_TASK_DONE, (uint16_t)id))
+	if (_osz_bcast(OSZ_TASK_DONE, (uint16_t)id)) {
 		printf("OSZ: reported task %d done\n", id);
+		osz_dbg(OSZ_DBG_TASK_DONE, id);
+	}
 }
 
 int osz_zone_clear(uint16_t payload, uint16_t src_addr)
@@ -261,6 +266,8 @@ int osz_zone_clear(uint16_t payload, uint16_t src_addr)
 	if (_pe.y < lo || _pe.y > hi)
 		return 0;
 
+	osz_dbg(OSZ_DBG_ZONE_CLEAR, payload);
+
 	/* Anything of the application still here (e.g. an abort still on its way) */
 	int removed_current = tcb_remove_all();
 
@@ -270,8 +277,10 @@ int osz_zone_clear(uint16_t payload, uint16_t src_addr)
 	/* The last buffers this PE sent are still in the kernel heap */
 	dmni_clear_sent();
 
-	if (_osz_bcast(OSZ_ZONE_CLEARED, payload))
+	if (_osz_bcast(OSZ_ZONE_CLEARED, payload)) {
 		printf("OSZ: PE %d,%d cleared for rows %d..%d\n", _pe.x, _pe.y, lo, hi);
+		osz_dbg(OSZ_DBG_ZONE_CLEARED, payload);
+	}
 
 	return removed_current;
 }
