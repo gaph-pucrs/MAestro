@@ -59,6 +59,7 @@ void tcb_alloc(
 	tcb_t *tcb, 
 	int id, 
 	size_t text_size, 
+	size_t rodata_size, 
 	size_t data_size, 
 	size_t bss_size, 
 	int mapper_task, 
@@ -68,7 +69,7 @@ void tcb_alloc(
 {
 	memset(tcb->registers, 0, HAL_MAX_REGISTERS * sizeof(int));
 
-	tcb->registers[HAL_REG_SP] = MMR_DATA_BASE | (MMR_DMNI_INF_DMEM_PAGE_SZ - (sizeof(int) << 1));
+	tcb->registers[HAL_REG_SP] = MMR_DMNI_INF_PAGE_SZ - (sizeof(int) << 1);
 	tcb->pc = entry_point;
 
 	tcb->page = page_acquire();
@@ -79,12 +80,15 @@ void tcb_alloc(
 	}
 
 	tcb->id = id;
+	tcb->exec_limit = text_size;
+	tcb->write_base = text_size + rodata_size;
 	tcb->text_size = text_size;
+	tcb->rodata_size = rodata_size;
 	tcb->data_size = data_size;
 	tcb->bss_size = bss_size;
 	tcb->proc_to_migrate = -1;
 	
-	tcb->heap_end = (void*)(MMR_DATA_BASE + data_size + bss_size);
+	tcb->heap_end = (void*)(text_size + rodata_size + data_size + bss_size);
 
 	tl_set(&(tcb->mapper), mapper_task, mapper_addr);
 	list_init(&(tcb->message_requests));
@@ -284,6 +288,16 @@ unsigned *tcb_get_regs(tcb_t *tcb)
 size_t tcb_get_text_size(tcb_t *tcb)
 {
 	return tcb->text_size;
+}
+
+size_t tcb_get_rodata_size(tcb_t *tcb)
+{
+	return tcb->rodata_size;
+}
+
+bool tcb_is_writable(tcb_t *tcb, const void *ptr)
+{
+	return (unsigned)ptr >= tcb->write_base;
 }
 
 size_t tcb_get_data_size(tcb_t *tcb)

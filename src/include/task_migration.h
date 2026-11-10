@@ -21,6 +21,8 @@ typedef struct _tm_text {
     hermes_t hermes;
 
     uint32_t size;
+
+    uint32_t rodata_size;
     
     /* {task, mapper_address} */
     uint16_t mapper_address;
@@ -31,7 +33,7 @@ typedef struct _tm_text {
     uint8_t  pad8;
     uint16_t pad16;
 
-    /* Payload: binary with text */
+    /* Payload: binary with text and read-only data */
 } tm_text_t;
 
 typedef struct _tm_data {

@@ -32,15 +32,11 @@ CCOBJ = $(patsubst %.c, %.o, $(CCSRC))
 ASSRC = $(wildcard $(HALDIR)/*.S)
 ASOBJ = $(patsubst %.S,%.o, $(ASSRC))
 
-all: i$(TARGET).bin d$(TARGET).bin $(TARGET).lst
+all: $(TARGET).bin $(TARGET).lst
 
-d$(TARGET).bin: $(TARGET).elf
+$(TARGET).bin: $(TARGET).elf
 	@printf "${RED}Generating %s...${NC}\n" "$@"
-	@$(OBJCOPY) $< $@ -O binary -j .data
-
-i$(TARGET).bin: $(TARGET).elf
-	@printf "${RED}Generating %s...${NC}\n" "$@"
-	@$(OBJCOPY) $< $@ -O binary -j .text
+	@$(OBJCOPY) $< $@ -O binary -j .text -j .rodata -j .data
 
 $(TARGET).elf: $(CCOBJ) $(ASOBJ) $(LIBMUTILS)
 	@printf "${RED}Linking %s...${NC}\n" "$@"

@@ -21,6 +21,7 @@
  * hermes Hermes packet
  * entry_point Starting PC
  * text_size Text section size in bytes
+ * rodata_size Read-only data section size in bytes
  * data_size Data section size in bytes
  * bss_size BSS section size in bytes
  * task App+Task ID allocated
@@ -33,6 +34,8 @@ typedef struct _talloc {
     uint32_t entry_point;
 
     uint32_t text_size;
+
+    uint32_t rodata_size;
 
     uint32_t data_size;
 

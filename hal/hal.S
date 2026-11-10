@@ -19,14 +19,14 @@
 
 .equ HAL_REG_PC, 	HAL_MAX_REGISTERS
 .equ HAL_REG_PAGE, (HAL_MAX_REGISTERS+1)
+.equ HAL_REG_EXEC, (HAL_MAX_REGISTERS+2)
+.equ HAL_REG_WBASE,(HAL_MAX_REGISTERS+3)
 
-.equ mvmdo,  0x7C0
-.equ mvmds,  0x7C1
-.equ mvmio,  0x7C2
-.equ mvmis,  0x7C3
+.equ mvmo,   0x7C0
+.equ mvms,   0x7C1
+.equ mvmx,   0x7C2
+.equ mvmw,   0x7C3
 .equ mvmctl, 0x7C4
-.equ mvmdm,  0x7C5
-.equ mvmim,  0x7C6
 
 .section .init
 .align 4
@@ -54,32 +54,16 @@ _start:
 	csrw	mtvec,t1			# Write vector_entry address to mtvec
 								# Last bit is 0, means DIRECT mode
 
-	# Load data memory size to sp
+	# Load page size to sp, which also sets the stack to the top of the page
 	li		t2, MMR_DMNI_BASE
-	lw		sp, 0x1C(t2)
+	lw		sp, 0x18(t2)
 
-	# Configure virtual memory data size mask
-	addi 	sp, sp, -1
-	csrw	mvmds, sp
-	addi	sp, sp, 1
-
-	# Set stack to top of data memory
-	li		t4, MMR_DATA_BASE
-	or		sp, sp, t4
-	
-	# Load instruction memory size
-	lw		t5, 0x1C(t2)
-	addi 	t5, t5, -1
-	csrw	mvmis, t5
+	# Configure virtual memory page size
+	csrw	mvms, sp
 
 	# Enable XOSVM
 	li		t3, 1
 	csrw	mvmctl, t3
-
-	# Set XOSVM allowed mask
-	csrw	mvmim, zero
-	li		t6, MMR_DATA_BASE
-	csrw 	mvmdm, t6
 
 	# Clear the BSS
 	la a0, _edata
@@ -253,8 +237,11 @@ should_restore_isr:
 	# Load offset from scheduled task
 	lw		t1, (HAL_REG_PAGE*4)(a0)
 	lw		t1, 0(t1)
-	csrw	mvmdo, t1
-	csrw	mvmio, t1
+	csrw	mvmo, t1
+	lw		t1, (HAL_REG_EXEC*4)(a0)
+	csrw	mvmx, t1
+	lw		t1, (HAL_REG_WBASE*4)(a0)
+	csrw	mvmw, t1
 
 	# Continue to restore the remaining context
 restore_minimum:
@@ -335,8 +322,11 @@ should_restore_complete:
 
 	lw		 t1, (HAL_REG_PAGE*4)(a0)
 	lw		 t1, 0(t1)
-	csrw	mvmdo, t1
-	csrw	mvmio, t1
+	csrw	mvmo, t1
+	lw		t1, (HAL_REG_EXEC*4)(a0)
+	csrw	mvmx, t1
+	lw		t1, (HAL_REG_WBASE*4)(a0)
+	csrw	mvmw, t1
 
 	/* MPPRIV = user, MPIE = en */
 	li		t2, 0x80

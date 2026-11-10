@@ -31,9 +31,12 @@ typedef struct _tcb {
 	unsigned registers[HAL_MAX_REGISTERS];	//!< Register bank
 	void *pc;								//!< Program counter content
 	page_t *page;							//!< Pointer to the page offset control structure
+	unsigned exec_limit;					//!< First virtual address that cannot be fetched (used by HAL)
+	unsigned write_base;					//!< First virtual address that can be written (used by HAL)
 	
 	int id;					//!< TCB identifier
 	size_t text_size;		//!< Memory TEXT section size in bytes
+	size_t rodata_size;		//!< Memory RODATA section size in bytes
 	size_t data_size;		//!< Memory DATA section size in bytes
 	size_t bss_size;		//!< Memory BSS section size in bytes
 	int proc_to_migrate;	//!< Address of the processor to migrate
@@ -79,6 +82,7 @@ tcb_t *tcb_find(int task);
  * @param tcb Pointer to the TCB
  * @param id ID of the task
  * @param text_size Size of the code section
+ * @param rodata_size Size of the read-only data section
  * @param data_size Size of the data section
  * @param bss_size Size of the BSS section
  * @param mapper_task ID of the mapper task
@@ -89,6 +93,7 @@ void tcb_alloc(
 	tcb_t *tcb, 
 	int id, 
 	size_t text_size, 
+	size_t rodata_size, 
 	size_t data_size, 
 	size_t bss_size, 
 	int mapper_task, 
@@ -273,6 +278,25 @@ unsigned *tcb_get_regs(tcb_t *tcb);
  * @return Size of the text section
  */
 size_t tcb_get_text_size(tcb_t *tcb);
+
+/**
+ * @brief Gets the read-only data size of a task
+ * 
+ * @param tcb Pointer to the TCB
+ * 
+ * @return Size of the read-only data segment in bytes
+ */
+size_t tcb_get_rodata_size(tcb_t *tcb);
+
+/**
+ * @brief Checks if a task pointer can be written on behalf of the task
+ * 
+ * @param tcb Pointer to the TCB
+ * @param ptr Virtual address of the task
+ * 
+ * @return True if the address is in the writable region
+ */
+bool tcb_is_writable(tcb_t *tcb, const void *ptr);
 
 /**
  * @brief Gets the size of the data section

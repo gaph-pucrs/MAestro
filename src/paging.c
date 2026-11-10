@@ -28,7 +28,7 @@ int page_init()
      * Initialize instruction and data pages
      */
     const unsigned MAX_TASKS = (MMR_DMNI_INF_MANYCORE_SZ >> 16);
-    const unsigned PAGE_SIZE = MMR_DMNI_INF_IMEM_PAGE_SZ;
+    const unsigned PAGE_SIZE = MMR_DMNI_INF_PAGE_SZ;
 
     _pages = malloc(MAX_TASKS*sizeof(page_t));
 

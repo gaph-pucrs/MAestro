@@ -14,20 +14,23 @@ SECTIONS
     *(.text .stub .text.* .gnu.linkonce.t.*)
     /* .gnu.warning sections are handled specially by elf.em.  */
     *(.gnu.warning)
-    /* . = ALIGN(4); */
+    . = ALIGN(16);    /* The sizes reported to the MMU must add up with no gaps */
   }
   PROVIDE (__etext = .);
   PROVIDE (_etext = .);
   PROVIDE (etext = .);
-  . = 0x40000000;
-  .data           :
+  .rodata         :
   {
     *(.rodata .rodata.* .gnu.linkonce.r.*)
+    *(.srodata.cst16) *(.srodata.cst8) *(.srodata.cst4) *(.srodata.cst2) *(.srodata .srodata.*)
+    . = ALIGN(16);
+  }
+  .data           :
+  {
     __DATA_BEGIN__ = .;
     *(.data .data.* .gnu.linkonce.d.*)
     SORT(CONSTRUCTORS)
     __SDATA_BEGIN__ = .;
-    *(.srodata.cst16) *(.srodata.cst8) *(.srodata.cst4) *(.srodata.cst2) *(.srodata .srodata.*)
     *(.sdata .sdata.* .gnu.linkonce.s.*)
     /* . = ALIGN(4); */
   }
@@ -55,5 +58,12 @@ SECTIONS
     __global_pointer$ = MIN(__SDATA_BEGIN__ + 0x800,
 		            MAX(__DATA_BEGIN__ + 0x800, __BSS_END__ - 0x800));
   _end = .; PROVIDE (end = .);
+
+  __text_size   = SIZEOF(.text);
+  __rodata_size = SIZEOF(.rodata);
+  __data_size   = SIZEOF(.data);
+  __bss_size    = _end - __bss_start;
+  ASSERT(ADDR(.rodata) == ADDR(.text) + SIZEOF(.text), "gap between .text and .rodata")
+  ASSERT(ADDR(.data) == ADDR(.rodata) + SIZEOF(.rodata), "gap between .rodata and .data")
   /DISCARD/ : { *(.note.GNU-stack) *(.gnu_debuglink) *(.gnu.lto_*) }
 }

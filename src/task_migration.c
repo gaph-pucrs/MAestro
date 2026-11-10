@@ -208,18 +208,20 @@ int tm_send_text(tcb_t *tcb, int id, int addr)
 		return -ENOMEM;
 
 	tl_t *mapper = tcb_get_mapper(tcb);
-	size_t text_size = tcb_get_text_size(tcb);
+	size_t text_size   = tcb_get_text_size(tcb);
+	size_t rodata_size = tcb_get_rodata_size(tcb);
 
 	packet->hermes.flags   = 0;
     packet->hermes.service = MIGRATION_TEXT;
     packet->hermes.address = addr;
     packet->size           = text_size; 
+    packet->rodata_size    = rodata_size;
     packet->mapper_address = tl_get_addr(mapper);
     packet->task           = id;
     packet->mapper_task    = tl_get_task(mapper);
 
 	/* Align */
-	text_size = (text_size + 3) & ~3;
+	text_size = (text_size + rodata_size + 3) & ~3;
 
 	void *offset = tcb_get_offset(tcb);
 	
@@ -242,9 +244,9 @@ int tm_recv_text(tm_text_t *packet)
 	}
 
 	/* Initializes the TCB */
-	tcb_alloc(tcb, packet->task, packet->size, 0, 0, packet->mapper_task, packet->mapper_address, 0);
+	tcb_alloc(tcb, packet->task, packet->size, packet->rodata_size, 0, 0, packet->mapper_task, packet->mapper_address, 0);
 
-	uint32_t text_size = (packet->size + 3) & ~3;
+	uint32_t text_size = (packet->size + packet->rodata_size + 3) & ~3;
 
 	/* Obtain the program code */
 	void *offset = tcb_get_offset(tcb);
@@ -318,11 +320,12 @@ int tm_migrate(tcb_t *tcb)
 
 int _tm_send_data(tcb_t *tcb, int id, int addr)
 {
+	size_t ro_size    = tcb_get_text_size(tcb) + tcb_get_rodata_size(tcb);
 	size_t data_size  = tcb_get_data_size(tcb);
 	size_t bss_size   = tcb_get_bss_size(tcb);
 
     /* Get the heap size */
-	void *heap_start = (void*)(MMR_DATA_BASE + data_size + bss_size);
+	void *heap_start = (void*)(ro_size + data_size + bss_size);
     void *heap_end   = tcb_get_heap_end(tcb);
     size_t heap_size = (heap_end - heap_start);
 
@@ -345,7 +348,7 @@ int _tm_send_data(tcb_t *tcb, int id, int addr)
 
 	printf("Sending data of task %d to address %x with size %d\n", id, addr, total_size);
 
-    return dmni_send(packet, sizeof(tm_data_t), true, tcb_get_offset(tcb) + tcb_get_text_size(tcb), total_size, false);
+    return dmni_send(packet, sizeof(tm_data_t), true, tcb_get_offset(tcb) + ro_size, total_size, false);
 }
 
 int tm_recv_data(tm_data_t *packet)
@@ -357,13 +360,14 @@ int tm_recv_data(tm_data_t *packet)
 	
 	tcb_set_data_size(tcb, packet->data_size);
 	tcb_set_bss_size(tcb, packet->bss_size);
-    void *heap_start = (void*)(tcb_get_text_size(tcb) + packet->data_size + packet->bss_size);
+    size_t ro_size = tcb_get_text_size(tcb) + tcb_get_rodata_size(tcb);
+    void *heap_start = (void*)(ro_size + packet->data_size + packet->bss_size);
     void *heap_end = heap_start + packet->heap_size;
     tcb_set_brk(tcb, heap_end);
 
 	size_t total_size = ((packet->data_size + packet->bss_size + packet->heap_size) + 3) & ~3;
 
-    int ret = dmni_recv(tcb_get_offset(tcb) + tcb_get_text_size(tcb), total_size);
+    int ret = dmni_recv(tcb_get_offset(tcb) + ro_size, total_size);
 	if (ret < 0)
 		return ret;
 
@@ -375,7 +379,7 @@ int tm_recv_data(tm_data_t *packet)
 int _tm_send_stack(tcb_t *tcb, int id, int addr)
 {
 	/* Get the stack pointer */
-	size_t stack_size = (((MMR_DMNI_INF_DMEM_PAGE_SZ - (tcb_get_sp(tcb) - MMR_DATA_BASE)) + 3) & ~3);
+	size_t stack_size = (((MMR_DMNI_INF_PAGE_SZ - tcb_get_sp(tcb)) + 3) & ~3);
 
 	if (stack_size == 0)
 		return 0;
@@ -392,7 +396,7 @@ int _tm_send_stack(tcb_t *tcb, int id, int addr)
 
 	printf("Sending stack of task %d to address %x with size %d\n", id, addr, stack_size);
 
-    return dmni_send(packet, sizeof(tm_stack_t), true, (tcb_get_offset(tcb) + MMR_DATA_BASE) + (MMR_DMNI_INF_DMEM_PAGE_SZ - stack_size), stack_size, false);
+    return dmni_send(packet, sizeof(tm_stack_t), true, tcb_get_offset(tcb) + (MMR_DMNI_INF_PAGE_SZ - stack_size), stack_size, false);
 }
 
 int tm_recv_stack(tm_stack_t *packet)
@@ -402,7 +406,7 @@ int tm_recv_stack(tm_stack_t *packet)
 	if (tcb == NULL)
 		return -EINVAL;
 
-	int ret = dmni_recv((tcb_get_offset(tcb) + MMR_DATA_BASE) + (MMR_DMNI_INF_DMEM_PAGE_SZ - packet->size), packet->size);
+	int ret = dmni_recv(tcb_get_offset(tcb) + (MMR_DMNI_INF_PAGE_SZ - packet->size), packet->size);
 	if (ret < 0)
 		return ret;
 

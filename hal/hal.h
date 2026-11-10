@@ -15,7 +15,6 @@
 
 #include <asm-macros.h>
 
-#define MMR_DATA_BASE	0x40000000U
 #define MMR_PLIC_BASE	0x80000000U
 #define MMR_DMNI_BASE	0x90000000U
 #define MMR_RTC_BASE 	0xA0000000U

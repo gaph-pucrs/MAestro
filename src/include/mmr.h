@@ -31,8 +31,7 @@
 
 #define MMR_DMNI_INF_ADDRESS		(*(volatile unsigned int*)0x90000010U)
 #define MMR_DMNI_INF_MANYCORE_SZ	(*(volatile unsigned int*)0x90000014U)
-#define MMR_DMNI_INF_IMEM_PAGE_SZ	(*(volatile unsigned int*)0x90000018U)
-#define MMR_DMNI_INF_DMEM_PAGE_SZ	(*(volatile unsigned int*)0x9000001CU)
+#define MMR_DMNI_INF_PAGE_SZ		(*(volatile unsigned int*)0x90000018U)
 
 #define MMR_DMNI_HERMES_HEAD		(*(volatile unsigned int*)0x90000020U)
 #define MMR_DMNI_HERMES_RECD_CNT	(*(volatile unsigned int*)0x90000024U)

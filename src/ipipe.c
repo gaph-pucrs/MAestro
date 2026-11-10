@@ -51,7 +51,7 @@ size_t ipipe_transfer(ipipe_t *ipipe, void *offset, void *src, size_t size)
 	if(ipipe->size < size)
 		return 0;
 
-	void *real_ptr = (void*)((unsigned)ipipe->buf | (unsigned)offset);
+	void *real_ptr = (void*)((unsigned)ipipe->buf + (unsigned)offset);
 
 	memcpy(real_ptr, src, size);
 
@@ -71,7 +71,7 @@ int ipipe_receive(ipipe_t *ipipe, void *offset, size_t size)
 		return 0;
 	}
 
-	void *real_ptr = (void*)((unsigned)ipipe->buf | (unsigned)offset);
+	void *real_ptr = (void*)((unsigned)ipipe->buf + (unsigned)offset);
 	size_t align_size = (size + 3) & ~3;
 
 	if(ipipe->size < align_size){

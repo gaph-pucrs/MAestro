@@ -38,6 +38,7 @@ int talloc_alloc(talloc_t *alloc)
 		tcb, 
 		alloc->task, 
 		alloc->text_size, 
+		alloc->rodata_size, 
 		alloc->data_size, 
 		alloc->bss_size, 
 		alloc->mapper_task, 
@@ -49,17 +50,13 @@ int talloc_alloc(talloc_t *alloc)
 	// printf("Data size: %u\n", alloc->data_size);
 	// printf("BSS size:  %u\n", alloc->bss_size);
 
-    /* Obtain the program code */
-	size_t text_recv = dmni_recv(tcb_get_offset(tcb), ((alloc->text_size + 3) & ~3));
-	if (text_recv < 0)
-		return text_recv;
+    /* Obtain text, read-only data and data, which are contiguous in the page */
+	size_t image_size = (alloc->text_size + alloc->rodata_size + alloc->data_size + 3) & ~3;
+	size_t image_recv = dmni_recv(tcb_get_offset(tcb), image_size);
+	if (image_recv < 0)
+		return image_recv;
 
-	/* Obtain program data */
-	size_t data_recv = dmni_recv((void*)(MMR_DATA_BASE | (unsigned)(tcb_get_offset(tcb))), ((alloc->data_size + 3) & ~3));
-	if (data_recv < 0)
-		return data_recv;
-
-	// printf("Received %d bytes of text and %d bytes of data\n", text_recv, data_recv);
+	// printf("Received %d bytes\n", image_recv);
 
 	printf(
 		"Task id %d allocated at %d with entry point %lx and offset %p\n", 

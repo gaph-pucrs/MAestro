@@ -181,7 +181,7 @@ int sys_writepipe(tcb_t *tcb, void *buf, size_t size, int receiver, bool sync)
 		return -EINVAL;
 
 	/* Sets real address of message buffer */
-	buf = (void*)((unsigned)buf | (unsigned)tcb_get_offset(tcb));
+	buf = (void*)((unsigned)buf + (unsigned)tcb_get_offset(tcb));
 
 	uint32_t target = receiver;
 	if ((target & (MEMPHIS_FORCE_PORT | MEMPHIS_KERNEL_MSG)) == 0) {
@@ -344,6 +344,10 @@ int sys_readpipe(tcb_t *tcb, void *buf, size_t size, int sender, bool sync)
 		return -EINVAL;
 	}
 
+	/* The kernel and DMA writes here are not checked by the MMU */
+	if (!tcb_is_writable(tcb, buf))
+		return -EFAULT;
+
 	const int receiver = tcb_get_id(tcb);
 
 	uint32_t source;
@@ -352,7 +356,7 @@ int sys_readpipe(tcb_t *tcb, void *buf, size_t size, int sender, bool sync)
 		tl_t   *dav  = list_get_data(list_front(davs));
 		if (dav == NULL) {
 			if (receiver == mpipe_owner() && mpipe_trywait() == 0) {
-				buf = (void*)((unsigned)buf | (unsigned)tcb_get_offset(tcb));
+				buf = (void*)((unsigned)buf + (unsigned)tcb_get_offset(tcb));
 				size_t ret = mpipe_read(buf, size);
 				mpipe_post();
 				if (halt_pndg()) {
@@ -401,7 +405,7 @@ int sys_readpipe(tcb_t *tcb, void *buf, size_t size, int sender, bool sync)
 		opipe_t *pending = kpipe_find(receiver);
 
 		/* Store it like a MESSAGE_DELIVERY */
-		buf = (void*)((unsigned)buf | (unsigned)tcb_get_offset(tcb));
+		buf = (void*)((unsigned)buf + (unsigned)tcb_get_offset(tcb));
 		
 		// putsv("Message length is ", msg->size);
 		// putsv("First word is ", msg->message[0]);
@@ -432,7 +436,7 @@ int sys_readpipe(tcb_t *tcb, void *buf, size_t size, int sender, bool sync)
 
 	if (opipe != NULL && opipe_get_receiver(opipe) == (receiver != -1 ? receiver : ((source & MEMPHIS_FORCE_PORT) ? source : (source | MEMPHIS_KERNEL_MSG)))) {
 		/* Message was found in pipe, writes to the consumer page address (local producer) */
-		buf = (void*)((unsigned)buf | (unsigned)tcb_get_offset(tcb));
+		buf = (void*)((unsigned)buf + (unsigned)tcb_get_offset(tcb));
 
 		int result = opipe_transfer(opipe, buf, size);
 
@@ -571,7 +575,7 @@ int sys_write(tcb_t *tcb, int file, char *buf, int nbytes)
 		return -EINVAL;
 	}
 
-	buf = (char*)((unsigned)tcb_get_offset(tcb) | (unsigned)buf);
+	buf = (char*)((unsigned)tcb_get_offset(tcb) + (unsigned)buf);
 
 
 	int rv = 0;
@@ -600,7 +604,10 @@ int sys_fstat(tcb_t *tcb, int file, struct stat *st)
 		return false;
 	}
 
-	st = (struct stat*)((unsigned)tcb_get_offset(tcb) | (unsigned)st);
+	if (!tcb_is_writable(tcb, st))
+		return -EFAULT;
+
+	st = (struct stat*)((unsigned)tcb_get_offset(tcb) + (unsigned)st);
 	int ret = fstat(file, st);
 
 	if(ret == -1)
@@ -616,7 +623,10 @@ int sys_close(int file)
 
 int sys_get_ctx(tcb_t *tcb, mctx_t *ctx)
 {
-	mctx_t *real_ptr = (mctx_t*)((unsigned)tcb_get_offset(tcb) | (unsigned)ctx);
+	if (!tcb_is_writable(tcb, ctx))
+		return -EFAULT;
+
+	mctx_t *real_ptr = (mctx_t*)((unsigned)tcb_get_offset(tcb) + (unsigned)ctx);
 	uint32_t size_register = MMR_DMNI_INF_MANYCORE_SZ;
 	real_ptr->PE_X_CNT 	= (size_register >> 8) & 0xFF;
 	real_ptr->PE_Y_CNT 	= size_register & 0xFF;
@@ -675,7 +685,7 @@ int sys_writempipe(tcb_t *tcb, void *buf, size_t size, int receiver)
 		return -EINVAL;
 
 	/* Sets real address of message buffer */
-	buf = (void*)((unsigned)buf | (unsigned)tcb_get_offset(tcb));
+	buf = (void*)((unsigned)buf + (unsigned)tcb_get_offset(tcb));
 
 	return mpipe_write(buf, size, target);
 }
