@@ -65,5 +65,6 @@ SECTIONS
   __bss_size    = _end - __bss_start;
   ASSERT(ADDR(.rodata) == ADDR(.text) + SIZEOF(.text), "gap between .text and .rodata")
   ASSERT(ADDR(.data) == ADDR(.rodata) + SIZEOF(.rodata), "gap between .rodata and .data")
+  ASSERT(__bss_start == ADDR(.data) + SIZEOF(.data), "section between .data and .bss")
   /DISCARD/ : { *(.note.GNU-stack) *(.gnu_debuglink) *(.gnu.lto_*) }
 }
