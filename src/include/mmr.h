@@ -55,6 +55,8 @@
 #define MMR_DBG_HALT				(*(volatile unsigned int*)0xF0000004U)
 #define MMR_DBG_TERMINATE			(*(volatile unsigned int*)0xF0000008U)
 #define MMR_DBG_SCHED_REPORT		(*(volatile unsigned int*)0xF0000010U)
+#define MMR_DBG_WRITE_PTR			(*(volatile unsigned int*)0xF0000018U)	/* Physical address of the buffer */
+#define MMR_DBG_WRITE_LEN			(*(volatile unsigned int*)0xF000001CU)	/* Writing the length prints it */
 #define MMR_DBG_ADD_PIPE			(*(volatile unsigned int*)0xF0000020U)
 #define MMR_DBG_REM_PIPE			(*(volatile unsigned int*)0xF0000024U)
 #define MMR_DBG_ADD_REQ				(*(volatile unsigned int*)0xF0000030U)

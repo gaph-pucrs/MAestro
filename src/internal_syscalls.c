@@ -41,8 +41,9 @@ int _write(int file, char *ptr, int len)
 		return -1;
     }
 
-	for(int i = 0; i < len; i++)
-		MMR_DBG_PUTC = ptr[i];
+	/* The simulator prints the whole buffer when the length is written */
+	MMR_DBG_WRITE_PTR = (unsigned)ptr;
+	MMR_DBG_WRITE_LEN = len;
 
 	return len;
 }
