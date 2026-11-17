@@ -42,9 +42,20 @@ i$(TARGET).bin: $(TARGET).elf
 	@printf "${RED}Generating %s...${NC}\n" "$@"
 	@$(OBJCOPY) $< $@ -O binary -j .text
 
+# The kernel C code must not use vector instructions: hal.S saves the tasks' vector registers
+# only when a task can lose the core, so kernel code that used them would corrupt the tasks'.
+# Keep the vector extension out of -march, and check that the only vector instructions in the
+# kernel are hal.S's own.
+VINSNS = awk -F'\t' '$$3 ~ /^v/' | wc -l
+
 $(TARGET).elf: $(CCOBJ) $(ASOBJ) $(LIBMUTILS)
 	@printf "${RED}Linking %s...${NC}\n" "$@"
 	@$(CC) $(CCOBJ) $(ASOBJ) -Wl,-Map=$(TARGET).map -N -o $@ $(LDFLAGS)
+	@hal=$$($(OBJDUMP) -d $(ASOBJ) | $(VINSNS)); elf=$$($(OBJDUMP) -d $@ | $(VINSNS)); \
+	if [ "$$elf" -ne "$$hal" ]; then \
+		printf "${RED}%s has %s vector instructions, hal.S only %s: the kernel C code must not use vector${NC}\n" "$@" "$$elf" "$$hal"; \
+		rm -f $@; exit 1; \
+	fi
 
 $(TARGET).lst: $(TARGET).elf
 	@printf "${RED}Generating %s...${NC}\n" "$@"

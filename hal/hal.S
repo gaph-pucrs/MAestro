@@ -19,6 +19,65 @@
 
 .equ HAL_REG_PC, 	HAL_MAX_REGISTERS
 .equ HAL_REG_PAGE, (HAL_MAX_REGISTERS+1)
+.equ HAL_REG_VL,    (HAL_MAX_REGISTERS+2)
+.equ HAL_REG_VTYPE, (HAL_MAX_REGISTERS+3)
+.equ HAL_REG_VREGS, (HAL_MAX_REGISTERS+4)
+
+# Vector CSRs, by number: this file is assembled without the vector extension
+.equ CSR_VL,    0xC20
+.equ CSR_VTYPE, 0xC21
+.equ CSR_VLENB, 0xC22
+
+# Saves the vector context (vl, vtype, v0-v31) of the task in TCB register \tcb.
+# The vector registers are one bank per core (RS5 vectorRegbank.sv), so they must be saved
+# whenever the task can lose the core: on interrupts and when a syscall schedules another task.
+# The kernel itself has no vector code, so the registers are untouched while it runs.
+# vregs is NULL when the core has no vector unit (vlenb = 0), where vector instructions are illegal.
+# Uses t0, t2, t3.
+.macro VSAVE tcb
+	lw		t0, (HAL_REG_VREGS*4)(\tcb)
+	beqz	t0, 1f
+	csrr	t2, CSR_VL
+	sw		t2, (HAL_REG_VL*4)(\tcb)
+	csrr	t2, CSR_VTYPE
+	sw		t2, (HAL_REG_VTYPE*4)(\tcb)
+	csrr	t3, CSR_VLENB
+	slli	t3, t3, 3			# bytes in 8 registers
+	.option push
+	.option arch, +zve32x
+	vs8r.v	v0,  (t0)
+	add		t0, t0, t3
+	vs8r.v	v8,  (t0)
+	add		t0, t0, t3
+	vs8r.v	v16, (t0)
+	add		t0, t0, t3
+	vs8r.v	v24, (t0)
+	.option pop
+1:
+.endm
+
+# Restores the vector context of the task in TCB register \tcb. vl and vtype go last, with
+# vsetvl: the whole-register loads do not depend on them. Uses t0, t2, t3, t4.
+.macro VRESTORE tcb
+	lw		t0, (HAL_REG_VREGS*4)(\tcb)
+	beqz	t0, 1f
+	csrr	t3, CSR_VLENB
+	slli	t3, t3, 3			# bytes in 8 registers
+	lw		t2, (HAL_REG_VL*4)(\tcb)
+	lw		t4, (HAL_REG_VTYPE*4)(\tcb)
+	.option push
+	.option arch, +zve32x
+	vl8re8.v	v0,  (t0)
+	add		t0, t0, t3
+	vl8re8.v	v8,  (t0)
+	add		t0, t0, t3
+	vl8re8.v	v16, (t0)
+	add		t0, t0, t3
+	vl8re8.v	v24, (t0)
+	vsetvl	zero, t2, t4
+	.option pop
+1:
+.endm
 
 .equ mvmdo,  0x7C0
 .equ mvmds,  0x7C1
@@ -205,6 +264,9 @@ intr_handler:
 	sw		s10, (HAL_REG_S10*4)(s0)
 	sw		s11, (HAL_REG_S11*4)(s0)
 
+	# The task may have been interrupted inside vector code (keeps t5 = mcause)
+	VSAVE	s0
+
 	li		t1, INTR_MASK		# Bit 31 (interrupt)
 	and		t1, t1, t5			# t1 = mcause AND interrupt mask
 	bnez	t1, isr_entry		# If INTR mask is true, jump to interrupt handler
@@ -255,6 +317,9 @@ should_restore_isr:
 	lw		t1, 0(t1)
 	csrw	mvmdo, t1
 	csrw	mvmio, t1
+
+	# A different task: restore its vector context (t0-t4 are restored below)
+	VRESTORE a0
 
 	# Continue to restore the remaining context
 restore_minimum:
@@ -321,6 +386,9 @@ ecall_handler:
 	sw		s10, (HAL_REG_S10*4)(s0)
 	sw		s11, (HAL_REG_S11*4)(s0)
 
+	# Another task will run: save the vector context too (keeps a0 and s0)
+	VSAVE	s0
+
 restore_complete:
 	csrw	 mscratch, sp	# Save kernel sp
 
@@ -341,6 +409,9 @@ should_restore_complete:
 	/* MPPRIV = user, MPIE = en */
 	li		t2, 0x80
 	csrw	mstatus, t2
+
+	# Restore the vector context (t0-t4 are restored below)
+	VRESTORE a0
 
 	lw		 ra,  (HAL_REG_RA*4)(a0)
 	lw		 sp,  (HAL_REG_SP*4)(a0)
