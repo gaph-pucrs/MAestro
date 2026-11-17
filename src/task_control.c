@@ -15,6 +15,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <string.h>
 #include <errno.h>
 
@@ -26,6 +27,23 @@
 #include <memphis/messaging.h>
 
 list_t _tcbs;
+
+/* hal.S reaches the vector context as HAL_REG_VL, HAL_REG_VTYPE and HAL_REG_VREGS */
+static_assert(offsetof(tcb_t, vl)    == (HAL_MAX_REGISTERS + 2)*sizeof(int), "tcb_t: vl must follow page");
+static_assert(offsetof(tcb_t, vtype) == (HAL_MAX_REGISTERS + 3)*sizeof(int), "tcb_t: vtype must follow vl");
+static_assert(offsetof(tcb_t, vregs) == (HAL_MAX_REGISTERS + 4)*sizeof(int), "tcb_t: vregs must follow vtype");
+
+/**
+ * @brief Bytes in one vector register (VLEN/8), read from the vlenb CSR
+ *
+ * @return 0 if the core has no vector unit (RS5 reads vlenb as 0 when VEnable = 0)
+ */
+static unsigned _tcb_vlenb()
+{
+	unsigned vlenb;
+	__asm__ volatile ("csrr %0, 0xC22" : "=r"(vlenb));	/* vlenb, by number: no vector extension in -march */
+	return vlenb;
+}
 
 void tcb_init()
 {
@@ -76,6 +94,19 @@ void tcb_alloc(
 	if(tcb->page == NULL){
 		puts("FATAL: no free pages found");
 		while(true);
+	}
+
+	/* Vector context: only on cores with a vector unit, sized by its VLEN */
+	tcb->vl = 0;
+	tcb->vtype = 0;
+	tcb->vregs = NULL;
+	unsigned vlenb = _tcb_vlenb();
+	if (vlenb != 0) {
+		tcb->vregs = calloc(32, vlenb);
+		if (tcb->vregs == NULL) {
+			puts("FATAL: could not allocate the vector context");
+			while(true);
+		}
 	}
 
 	tcb->id = id;
@@ -166,6 +197,7 @@ void tcb_remove(tcb_t *tcb)
 
 	MMR_DBG_TERMINATE = tcb->id;
 
+	free(tcb->vregs);
 	free(tcb);
 }
 

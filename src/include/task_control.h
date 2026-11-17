@@ -31,6 +31,11 @@ typedef struct _tcb {
 	unsigned registers[HAL_MAX_REGISTERS];	//!< Register bank
 	void *pc;								//!< Program counter content
 	page_t *page;							//!< Pointer to the page offset control structure
+	/* Vector context, saved by hal.S when the task loses the core. Keep right after page: */
+	/* hal.S reaches them as HAL_REG_VL, HAL_REG_VTYPE and HAL_REG_VREGS */
+	unsigned vl;							//!< Vector length CSR
+	unsigned vtype;							//!< Vector type CSR
+	void *vregs;							//!< v0-v31 (32 * vlenb bytes), NULL if the core has no vector unit
 	
 	int id;					//!< TCB identifier
 	size_t text_size;		//!< Memory TEXT section size in bytes
